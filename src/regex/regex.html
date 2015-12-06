@@ -1,0 +1,1095 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta name="generator" content=
+    "HTML Tidy for Windows (vers 25 March 2009), see www.w3.org" />
+    <title>
+      Regular Expressions in ANS Forth
+    </title>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+    <link rel="stylesheet" href="../forth.css" type="text/css" />
+  </head>
+  <body>
+    <h1 class="centred">
+      Regex - Regular Expressions in ANS Forth
+    </h1>
+    <h3 class="centred">
+      (Version 0.8, 18 November 2010)
+    </h3>
+    <ol>
+      <li>
+        <a class="body_link" href="#intro">Introduction</a>
+      </li>
+      <li>
+        <a class="body_link" href="#feat">Features</a>
+      </li>
+      <li>
+        <a class="body_link" href="#port">Portability</a>
+      </li>
+      <li>
+        <a class="body_link" href="#down">Download</a>
+      </li>
+      <li>
+        <a class="body_link" href="#test">Install and Test</a>
+      </li>
+      <li>
+        <a class="body_link" href="#use">Using Regex</a>
+      </li>
+      <li>
+        <a class="body_link" href="#builder">String Builder</a>
+      </li>
+      <li>
+        <a class="body_link" href="#future">Features for Future Versions</a>
+      </li>
+      <li>
+        <a class="body_link" href="#exclude">Features Excluded</a>
+      </li>
+      <li>
+        <a class="body_link" href="#notes">Implementation Notes</a>
+      </li>
+      <li>
+        <a class="body_link" href="#ANSForth">ANS Forth Compliancy</a>
+      </li>
+      <li>
+        <a class="body_link" href="#contact">Contact</a>
+      </li>
+      <li>
+        <a class="body_link" href="#history">Version History</a>
+      </li>
+      <li>
+        <a class="body_link" href="../home.html">Home</a>
+      </li>
+    </ol>
+    <h2>
+      Important change in versions 0.5 onwards
+    </h2>
+    <p>
+      Change to the specification of <a class="body_link" href=
+      "#match"><code>match</code></a>.
+    </p>
+    <h2>
+      <a name="intro" id="intro">1. Introduction</a>
+    </h2>
+    <p>
+      Regex is an ANS Forth program to compile regular expressions written in
+      the conventional format and to match ASCII text against them. The regular
+      expression flavour is Perl-like. This release is rich in features but is
+      still in development with features to be added. The package includes a
+      String Builder module to make use of the results from a successful
+      regular expression match. Regex is intended for use on 32 bit or larger
+      desktop computers rather than 16 bit or embedded processors and so little
+      attention has been paid to code size - ease of development and
+      maintenance have been the main drivers. To this end the tools LexGen and
+      Grace have been used for the regular expression scanner and parsers and
+      an object oriented approach has been used in the design. The availability
+      of this program has not yet been publicly announced, if you stumble upon
+      it you are welcome to use it but be warned that it is still under
+      development so various things may change until version 1.0 is released.
+    </p>
+    <h2>
+      <a name="feat" id="feat">2. Features</a>
+    </h2>
+    <p>
+      The features currently provided are:
+    </p>
+    <ul>
+      <li>character concatenation <code>abc</code>
+      </li>
+      <li>alternation <code>a|b</code>
+      </li>
+      <li>Greedy quantifiers <code>? * + {n,m} {n,}</code> and <code>{n}</code>
+      for specification of repetition
+      </li>
+      <li>Lazy quantifiers <code>*? +? ?? {n,m}? {n,}?</code> and
+      <code>{n}?</code>
+      </li>
+      <li>Possessive quantifiers <code>*+ ++ ?+ {n,m}+ {n,}+</code> and <code>
+        {n}+</code>
+      </li>
+      <li>character classes <code>[abc]</code> or <code>[a-zA-Z]</code>
+      </li>
+      <li>negated character classes <code>[^abc]</code> or
+      <code>[^a-zA-Z]</code>
+      </li>
+      <li>match any character except <code>\n</code> using <code>.</code>
+      </li>
+      <li>metacharacter recognition <code>\{ \} \[ \( \) \. \| \* \+ \? \] \^
+      \$ \\</code>
+      </li>
+      <li>escaped characters <code>\a \e \f \n \r \t \v \0 \bl \#</code>
+      </li>
+      <li>escaped characters in character classes <code>\b \- \] \^ \$
+      \\</code>
+      </li>
+      <li>hexadecimal escapes <code>\xF \xFF \x{F...}</code>
+      </li>
+      <li>control characters e.g. <code>\cH</code> for <code>CTRL-H</code>
+      </li>
+      <li>capturing parentheses <code>(a(bc)def)gh</code>
+      </li>
+      <li>non-capturing parentheses <code>(?:abc)</code>
+      </li>
+      <li>named capturing parentheses <code>(?&lt;alice&gt;...)</code><br />
+        (Changed in version 0.4)
+      </li>
+      <li>anchors <code>^ $ \A \z \Z</code>
+      </li>
+      <li>predefined character classes <code>\w \W \d \D \s \S</code> both
+      inside and outside character classes
+      </li>
+      <li>backreferences, both numbered using <code>\1 \2</code> etc and named
+      using <code>\g{alice}</code>
+      </li>
+      <li>Execution of embedded code <code>(?{forth code})</code>
+      </li>
+      <li>Conditional sub-expressions with the test being on back references,
+      named references, embedded Forth code and all look arounds e.g.
+      <code>(?(1)abc|def)</code> <code>(?(name)abc|def)</code>
+      <code>(?(?{forth-code})abc|def)</code> <code>(?(?=xyz)abc|def)</code>
+      <code>(?(?!xyz)abc|def)</code> <code>(?(?&lt;=xyz)abc|def)</code> <code>
+        (?(?&lt;!xyz)abc|def)</code>
+      </li>
+      <li>Mode modifiers and mode modified spans:<br />
+        <code>(?i) (?-i) (?i:...) (?-i:...)</code> for case
+        (in)sensitivity<br />
+        <code>(?m) (?-m) (?m:...) (?-m:...)</code> for enhanced line anchor
+        match mode<br />
+        <code>(?s) (?-s) (?s:...) (?-s:...)</code> for "dot matches all"
+        mode<br />
+        <code>(?x) (?-x) (?x:...) (?-x:...)</code> for free-form layout and
+        comments mode terminated with <code>(?e)</code> or <code>(?end)</code>.
+        <code>#</code> is used for comments running to the end of the current
+        line<br />
+      </li>
+      <li>Look ahead <code>(?=...) (?!...)</code> and look behind
+      <code>(?&lt;=...) (?&lt;!...)</code>
+      </li>
+      <li>Atomic groups (independent subexpressions) <code>(?&gt;...)</code>
+      </li>
+      <li>Case folding:<br />
+        spans <code>\U \L ... \E</code><br />
+        following character <code>\u \l</code>
+      </li>
+    </ul>
+    <p>
+      For String Builder features see <a class="body_link" href=
+      "#builder">String Builder</a>.
+    </p>
+    <h2>
+      <a name="port" id="port">3. Portability</a>
+    </h2>
+    <p>
+      Regex 0.8 has been tested successfully on 32 bit versions of GForth,
+      SwiftForth, VFX Forth, Win32 Forth and BigForth, all running under MS
+      Windows XP and Windows 7 (32 bit version) and is, therefore, likely to be
+      ANS Forth compliant. Version 0.2 was reported as working on GForth under
+      Mac OSX and Linux, and on PFE; there is no reason, other than pessimism,
+      to suppose the latest version won't work on these systems. Versions
+      before 0.8 would not work with 64 bit Forths, version 0.8 should work on
+      64 bit Forths but this remains untested. Feedback on the use of Regex
+      with other systems will be welcomed.
+    </p>
+    <p>
+      Use of Regex using Forths with cells smaller than 32 bits is not
+      supported.
+    </p>
+    <h2>
+      <a name="down" id="down">4. Download</a>
+    </h2>
+    <p>
+      <a class="body_link" href="regex0.8.zip">Regex version 0.8</a> released
+      18 November 2010. This contains the following files:
+    </p>
+    <p>
+      Regex files:
+    </p>
+    <ul>
+      <li>
+        <code>xmini_oof.fth</code> - a library file
+      </li>
+      <li>
+        <code>sets.fth</code> - a library file
+      </li>
+      <li>
+        <code>regex.fth</code> - the Regex and String Builder source code file
+      </li>
+    </ul>
+    <p>
+      Testing:
+    </p>
+    <ul>
+      <li>
+        <code>regextest.fth</code> - the test program
+      </li>
+    </ul>
+    <p>
+      Documentation:
+    </p>
+    <ul>
+      <li>
+        <code>regex.html</code> - this file
+      </li>
+    </ul>
+    <p>
+      Note that, from version 0.3 onwards, Regex and String Builder files have
+      been concatenated until one large file - regex.fth. Similarly
+      regextest.fth. The state transition tables and parsers were generated by
+      LexGen and Grace in an unformatted mode and hence are unreadable (being
+      computer generated, they were never intended to be readable anyway).
+    </p>
+    <h2>
+      <a name="test" id="test">5. Install and Test</a>
+    </h2>
+    <p>
+      This is configured to work with GForth 0.7.0. To test Regex with GForth,
+      unzip the files into a suitable directory under GForth called, say,
+      <code>regex</code>. Then type:
+    </p>
+    <p>
+      <code>s" regex/regextest.fth" included</code>
+    </p>
+    <p>
+      or similar, which should give the following output:
+    </p>
+    <hr />
+    <pre>
+Gforth 0.7.0, Copyright (C) 1995-2008 Free Software Foundation, Inc.
+Gforth comes with ABSOLUTELY NO WARRANTY; for details type `license'
+Type `bye' to exit
+s" regex/regextest.fth" included Loading extended mini oof ...
+Extended mini oof loaded. &lt;0&gt; Loading Sets.fth ...
+redefined cell  redefined decode  Sets.fth loaded. &lt;0&gt; redefined 1Cell with 1cel
+l  redefined ?name-found  redefined noop  redefined ~  redefined testsym?  redef
+ined this-parser  redefined ~  redefined testsym?  redefined &gt;string  redefined 
+Format  redefined &lt;metachar&gt;  redefined &lt;forth&gt;  redefined &lt;group&gt;  redefined &lt;e
+scapedchar&gt;  redefined &lt;reference&gt;  redefined &lt;conditional&gt;  redefined &lt;modemod&gt;
+  redefined &lt;casefolder&gt;  redefined &lt;modifier&gt;  redefined this-parser  redefined
+ ~
+
+Regex version 0.8
+Copyright (C) Gerry Jackson 2010
+
+redefined TESTING with Testing
+Running Regex tests
+
+*  1 *  2 *  3 *  4 *  5 *  6 *  7 *  8 *  9 * 10 * 11 * 12 * 13 * 14 * 15
+* 16 * 17 * 18 * 19 * 20 * 21 * 22 * 23 * 24 * 25 * 26 * 27 * 28 * 29 * 30
+* 31 * 32 * 33 * 34 * 35 * 36 * 37 * 38 * 39 * 40 * 41 * 42 * 43 * 44 * 45
+* 46 * 47 * 48 * 49 * 50 * 51 * 52 * 53 * 54 * 55 * 56 * 57 * 58 * 59 * 60
+* 61 * 62 * 63 * 64
+Regex &amp; String Builder tests completed
+
+ ok
+</pre>
+    <hr />
+    <p>
+      With other systems, directory paths may need to be added to the lines
+      that include files e.g.<br />
+      <code>      s" filename" included</code><br />
+      in files <code>regex.fth</code> and <code>regextest.fth</code>. This is
+      system dependent as there is no ANS Forth standard way to specify
+      directory paths.
+    </p>
+    <p>
+      The output from other systems will vary, ignore any redefinition messages
+      (unless they cause an error). The last six lines are the important ones
+      that prove the software works.
+    </p>
+    <p>
+      If a system fails with an error message during the tests, please send
+      details (the regular expression, any output and the system used) to the
+      contact email address below.
+    </p>
+    <h2>
+      <a name="use" id="use">6. Using Regex</a>
+    </h2>
+    <p>
+      This section describes features relevant to Regex; it is not a primer or
+      tutorial on regular expressions - there are many such resources available
+      on the internet or books available for purchase. Knowledge of regular
+      expressions is assumed.
+    </p>
+    <h3>
+      Loading Regex
+    </h3>
+    <p>
+      Assuming the directory paths in <code>regex.fth</code> are correct for
+      your Forth system, simply type:<br />
+      <br />
+      <code>s" regex.fth" included</code>
+    </p>
+    <h3>
+      Compiling and matching regular expressions
+    </h3>
+    <p>
+      These words are provided to compile regular expressions and to match
+      strings against the compiled regular expression:<br />
+      <br />
+      <code>regex ( "ccc..." -- rgx )</code> compiles the following text as a
+      regular expression until one of <code>(?e)</code>, <code>(?end)</code> or
+      the end of the line is reached. The multi-line free-format modifiers
+      <code>(?x)</code> or <code>(?x:</code> can be used in the first line to
+      compile a multi-line regular expression with # comments (note that this
+      free-format mode is ignored inside a character class specification where
+      white space and # are treated as characters in the usual way). It returns
+      <code>rgx</code> which is the adddress of the compiled regular expression
+      and which should be used as an input parameter in a subsequent
+      <code>match</code><br />
+      <br />
+      <code>regex$ ( caddr u -- rgx )</code> compiles the regular expression
+      held as a string at <code>(caddr u)</code> returning the address of the
+      compiled regular expression<br />
+      <br />
+      <code>parse-regex ( char "ccc&lt;char&gt;" -- rgx )</code> parse ccc in
+      the input buffer delimited by the character <code>char</code>. If the
+      delimiter is not present, it parses to the end of the line. The parsed
+      text is treated as a regular expression and compiled to address
+      <code>rgx</code>. This word enables a delimiter of choice to be used, for
+      example a user may define:<br />
+      <code>   : parse/ [char] / parse-regex ;</code><br />
+      to delimit a regular expression with the character <code>/</code><br />
+      <a name="match" id="match"></a><br />
+      <code>match ( caddr1 u1 rgx -- caddr u -1 | caddr1 u1 0 )</code> attempts
+      to match the text at <code>(caddr1 u1)</code> against the compiled
+      regular expression <code>rgx</code>. If a match is found <code>(caddr u
+      -1)</code> is returned where <code>(caddr u)</code> is the rest of the
+      input string following the leftmost matching string, otherwise the input
+      string and 0 <code>(caddr1 u1 0)</code> are returned to indicate failure
+      to match. (Note that the returned string may have length <code>u</code> =
+      0 if, say, the match was at the end of the input string. The matching
+      string may be obtained using <code>get-match</code>. <span style=
+      "font-weight: bold; color: red">The specification of <code>match</code>
+      was changed in version 0.5</span> because experience using Regex showed
+      that returning the rest of the string being searched is far more useful
+      than returning the matching string.
+    </p>
+    <h3>
+      Accessing Regex results
+    </h3>
+    <p>
+      <code>get-match ( -- caddr u -1 | 0 0 0 )</code> returns a matching
+      string from the previous execution of <code>match</code> if a match was
+      found, otherwise <code>(0 0 0)</code>.<br />
+      <br />
+      <code>get-subex ( n -- caddr u )</code> returns the contents of the nth
+      pair of capturing parentheses, where the count starts at 1 from the start
+      of the regular expression. <code>0 get-subex</code> is the same as
+      <code>get-match</code><br />
+      <br />
+      (Note that <code>substitute</code> and <code>head&amp;tail</code> were
+      removed in version 0.2 as they have been superseded by the String
+      Builder.)
+    </p>
+    <h3>
+      Notes on various features
+    </h3>
+    <p>
+      No description is provided for most of the features listed above as they
+      behave in a standard manner - examples of usage can be found in the test
+      program provided. This section notes a few items that may not be
+      standard.
+    </p>
+    <ol>
+      <li>Regex finds the longest leftmost match in the string being processed
+      and is therefore does not have a traditional NFA engine using terms
+      described in "Mastering Regular Expression" by Jeffrey Friedl (p 177).
+      Therefore alternation is not ordered.<br />
+      </li>
+      <li>Capturing parentheses. The default configuration allows up to 9 pairs
+      of capturing parentheses in any one regular expression. This number may
+      be varied by changing the value of constant <code>subex-limit</code> in
+      file <code>regexmatch.fth</code><br />
+      </li>
+      <li>Embedded code. In <code>(?{forth code})</code>, the embedded forth
+      code is a sequence of one or more Forth words. The embedded code can make
+      free use of the data stack i.e. data present on the stack before
+      <code>match</code> can be accessed and additional data added or removed
+      from the stack (introduced in version 0.8). Restrictions on embedded
+      Forth code are:
+        <ul>
+          <li>The code cannot contain a } character because this is used to
+          terminate the code (see below for a work around).
+          </li>
+          <li>The code cannot include a definition of any kind. This is because
+          a sequence of Forth words is compiled as a :noname definition which
+          cannot include other Forth definitions (see below for a work around).
+          </li>
+        </ul>To overcome the restrictions in the last two bullet points, put
+        the offending sequence of Forth code words into a colon definition and
+        call that in the embedded Forth. With such a single call Regex saves
+        the xt without a :noname definition and executes that xt during a
+        match.<br />
+      </li>
+      <li>End of line anchors. <code>$ \z \Z</code> treat both CRLF and LF as
+      the end of the line.<br />
+      </li>
+      <li>Mode modifiers. Such as <code>(?i)</code> and friends operate until
+      one of: the corresponding <code>(?-i)</code>; the end of the regular
+      expression; or until the end of the immediate enclosing
+      parentheses.<br />
+        The default modifiers (initially all off) are used at the start of a
+        regular expression. These defaults may be changed prior to compilation
+        of a regular expression by the use of: <code>save-idefault
+        save-mdefault save-sdefault save-xdefault</code>, all with stack effect
+        <code>( flag -- )</code>. For example:<br />
+        <code>   true save-idefault</code><br />
+        sets the i modifier default value to on, making following regular
+        expressions case insensitive<br />
+      </li>
+      <li>Named References. (Note this has been changed in version 0.4 and
+      later versions)The name used in named capture
+      <code>(?&lt;name&gt;...)</code> and named references
+      <code>\g{name}</code> must have been previously declared using the
+      defining word <code>refname</code>. e.g.<br />
+        <code>refname alice</code><br />
+        Following a successful match, the contents of a named reference may be
+        retrieved in Forth code (including embedded Forth code) by executing
+        the name e.g. <code>alice</code> which will return the matched string
+        as ( caddr u ) if matched or ( 0 0 ) otherwise.<br />
+        The name must not be used as a <code>2variable</code> as was the case
+        in previous versions. If an invalid name is used the system will report
+        an error.<br />
+      </li>
+      <li>The look behind feature can contain any valid regular expression
+      items such as \w* which is of indeterminate length. Hence the NFA
+      matching engine does not know how far back to start matching the look
+      behind expression, hence it starts at the beginning of the subject
+      string. With large strings this may be slow and so should be used
+      carefully e.g<br />
+        <code>(?&lt;=(\d+)\s+abc\s+def.*)\1\s+abc\s+\?(?=xyz)</code><br />
+        is potentially slow as the look behind is applied first. On the other
+        hand<br />
+        <code>(\d+)\s+abc\s+\?(?=xyz)(?&lt;=\1\s+abc\s+def.*)</code><br />
+        is fast as the look behind follows the match and look ahead.<br />
+      </li>
+      <li>Conditional expressions. The syntax is:
+      (?(?&lt;test&gt;&lt;then-part&gt;|&lt;else-part&gt;) The back and named
+      reference tests return true if the reference has participated in the
+      match, otherwise false. The value of the reference is not used.
+      Conditional expressions may be nested indefinitely.<br />
+      </li>
+      <li>The embedded code in conditional expressions must leave true (i.e.
+      non-zero) or false on the stack to indicate whether the then-part or
+      else-part of the expression is to be matched.<br />
+      </li>
+    </ol>
+    <h3>
+      Character set
+    </h3>
+    <p>
+      This version of Regex has been tested with the 7 bit ASCII character set.
+      Limited tests have been carried out with 8 bit characters and there
+      should be no problems. The character size can be changed to 8 bit by
+      setting the constant <code>maxchar</code> to 255 in file
+      <code>regex.fth</code>. Do not set it larger, e.g. for 16 bit characters,
+      as character classes will then use large amounts of memory.
+    </p>
+    <h2>
+      <a name="builder" id="builder">7. String Builder</a>
+    </h2>
+    <p>
+      This has been introduced to the Regex package to simplify using the
+      results from matching a regular expression. The String Builder has syntax
+      in this form (alternatives use <code>stringer</code> and
+      <code>parse-stringer</code> - see below):
+    </p>
+    <pre>
+      <code>      pattern-string stringer$</code>
+</pre>
+    <p>
+      where the <code>pattern-string</code> is a string containing a sequence
+      of:
+    </p>
+    <ul>
+      <li>characters which are simply copied through to the concatenation
+      buffer
+      </li>
+      <li>metacharacters and escaped characters similar to those in regular
+      expressions e.g. <code>\n</code> to copy a line-feed into the
+      concatenation buffer
+      </li>
+      <li>references to results from the last regular expression match e.g.
+      <code>\1</code> for the contents of the first pair of capturing
+      parentheses. Also references to Forth variables. These values are then
+      copied to the concatenation buffer.
+      </li>
+      <li>commands which usually follow the Perl regular expression form of
+      <code>(?x...)</code> e.g. <code>(?-c)</code> to stop the concatenation
+      buffer from being cleared. Note that this is a change between versions
+      0.2 and 0.3. The commands include a <code>sprintf</code> like formatter
+      for number conversion.
+      </li>
+    </ul>
+    <p>
+      The word <code>stringer$</code> parses the <code>pattern-string</code>
+      and acts on the contents to build up a string in the concatenation
+      buffer. The typical use is to replace the matching text from a regular
+      expression match with some other text. Note that the necessary code to
+      read/write strings from/to files is outside the scope of the Regex
+      package at present - these operations can clearly be written in standard
+      Forth. A possible future extension could handle some of this in the
+      String Builder command language.
+    </p>
+    <p>
+      For examples of usage refer to the test program included in the download.
+    </p>
+    <h2>
+      String Builder words
+    </h2>
+    <p>
+      <code>stringer ( "ccc..." -- caddr u )</code> Accepts the
+      <code>pattern-string</code> from the input source until terminated by the
+      end of line or (?e) in free-layout mode. The concatenation buffer is
+      cleared, unless the command (?-c) is first in
+      <code>pattern-string</code>. The <code>pattern-string</code> is then
+      parsed and acted upon according to the contents. The string built up in
+      the concatenation buffer is returned as (caddr u) on completion, unless
+      the command (?-g) has been used.
+    </p>
+    <p>
+      <code>stringer$ ( caddr u -- caddr2 u2 )</code> As for
+      <code>stringer</code> except that the <code>pattern-string</code> is
+      already available as (caddr u).
+    </p>
+    <p>
+      <code>parse-stringer ( char -- caddr u )</code> Parse the input until the
+      delimiting character. The parsed string is then used as the
+      <code>pattern-string</code> and stringer$ is then executed.
+    </p>
+    <h2>
+      Related words
+    </h2>
+    <p>
+      <code>stringify ( -- caddr u)</code> Accepts text from the input source
+      in free-layout mode until an <code>(?end)</code> or <code>(?e)</code>
+      command is encountered. White space, including new line characters, are
+      stripped out and the remaining characters concatenated into a single
+      string. The <code>(caddr u)</code> pair of the resulting string is
+      returned to the caller. The aim of this word is to create a pattern
+      string from a readable free-layout representation that may be used inside
+      a colon definition; alternatively to easily create strings containing
+      'difficult' characters such as <code>"</code>. Use the word
+      <code>constant$</code> to save the string (see below).<br />
+      <br />
+      The following points apply to <code>stringify</code>:
+    </p>
+    <ul>
+      <li>An initial free-layout command <code>(?x)</code> is not needed at the
+      start of the free-layout text - if present it is ignored and not copied
+      to the resulting string.
+      </li>
+      <li>After the start of the text the commands <code>(-?x)</code> and
+      <code>(?x)</code> are obeyed to switch free-layout mode off/on
+      respectively. The <code>(-?x)</code> and <code>(?x)</code> commands are
+      not copied to the resulting string.
+      </li>
+      <li>If free-layout mode is switched off using <code>(?-x)</code> the
+      concatenation of text is terminated at the end of the current line; a
+      terminating <code>(?end)</code> or <code>(?e)</code> is not required in
+      this case. Free-layout mode may be switched on again with
+      <code>(?x)</code> before the end of the line.
+      </li>
+      <li>The concatenation buffer is used, therefore any user text in there
+      will be overwritten unless the first command is <code>(?-c)</code> when
+      all text will be appended to the contents of the buffer. The first <code>
+        (?-c)</code> is not copied to the resulting string. Subsequent
+        occurrences of <code>(?c)</code> and <code>(?-c)</code> are not acted
+        upon, but simply copied to the buffer.
+      </li>
+      <li>Before the resulting string is used it should be saved elsewhere e.g.
+      by using <code>constant$</code>
+      </li>
+      <li>All other <code>stringer</code> commands not already described are
+      not acted upon, but simply copied to the buffer. This is true for the
+      spanning commands <code>(?x: ... )</code> and <code>(?-x: ... )</code>
+      </li>
+    </ul>
+    <p>
+      <code>constant$ ( caddr u "spaces&lt;name&gt;" -- )</code> copies the
+      string specified by <code>( caddr u )</code> to dataspace at
+      <code>caddr2</code>, creates a constant called <code>&lt;name&gt;</code>
+      that, when executed, places <code>(caddr2 u)</code> on the stack. This
+      word is included for use with <code>stringify</code>.
+    </p>
+    <h2>
+      Metacharacters and Escaped Characters
+    </h2>
+    <p>
+      These are preceded by the <code>\</code> character and append the
+      following character or value to the concatenation buffer. The list of
+      these is:
+    </p>
+    <pre>
+<code>            \\  appends character \     \(  appends character (
+            \)          character )     \$          character $
+            \.          character .     \{          character {
+            \}          character }     \#          character #
+            \|          character |     \%          character %
+
+            \a          value 7         \e          value 27
+            \f          value 12        \n          value 10
+            \r          value 13        \s          value 32
+            \t          value 9         \v          value 11
+            \0          value 0
+            \cX         value (following character mod 32)
+                        e.g. \cH appends CTRL H value 8 as does \ch and \c(
+    </code>
+</pre>
+    <h2>
+      References
+    </h2>
+    <p>
+      The pattern string can include various references to the results from the
+      last regular expression match; these append the associated value to the
+      concatenation buffer. The types of reference are:
+    </p>
+    <ul>
+      <li>
+        <code>\1</code> for the contents of the first capturing parentheses,
+        <code>\2</code> for the second, and so on. These are equivalent to $1,
+        $2 etc in Perl.
+      </li>
+      <li>
+        <code>\H</code> refers to the part of the string before the match<br />
+        <code>\M</code> is the matching string itself<br />
+        <code>\T</code> refers to the part of the string after the match
+      </li>
+      <li>
+        <code>\g{name}</code> refers to a named capture where <code>name</code>
+        has been defined by <code>refname</code> (changed in version 0.4
+        onwards).
+      </li>
+    </ul>
+    <h2>
+      Commands
+    </h2>
+    <p>
+      The commands that can be included in the pattern string are:
+    </p>
+    <ul>
+      <li>
+        <code>(?c)</code> and <code>(?-c)</code>, where <code>(?c)</code>
+        clears the concatenation buffer and <code>(?-c)</code> means do not
+        clear the buffer. <code>(?-c)</code> is only useful as the first
+        command in a pattern string to retain the results from a previous use
+        of the string builder. By default the concatenation buffer is cleared
+        so the use of <code>(?c)</code> is redundant.
+      </li>
+      <li style="list-style: none">
+        <br />
+      </li>
+      <li>
+        <code>(?g)</code> and <code>(?-g)</code>, where <code>(?g)</code> means
+        return the contents of the concatenation buffer as <code>(caddr
+        u)</code> at the end of the pattern string, and <code>(?-g)</code>
+        means do not return the string. By default <code>(caddr u)</code> is
+        returned so that the use of <code>(?g)</code> is redundant.
+      </li>
+      <li style="list-style: none">
+        <br />
+      </li>
+      <li>
+        <code>(?x)</code> and <code>(?-x)</code> to indicate free-form layout
+        in exactly the same way as for regular expressions, <code>(?e)</code>
+        or <code>(?end)</code> is used to terminate the pattern string.
+      </li>
+      <li style="list-style: none">
+        <br />
+      </li>
+      <li>
+        <code>(?{forth-code})</code> to execute the enclosed forth-code. As
+        shown in the test program this may be used to match regular
+        expressions. It can also be used to insert text into the concatenation
+        buffer e.g.<br />
+        <code>s" Name: (?{s" Mary" concat}) Smith" stringer$</code><br />
+        would return the string<br />
+        <code>Name: Mary Smith</code>
+      </li>
+      <li style="list-style: none">
+        <br />
+      </li>
+      <li>
+        <code>\U \L \u \l \E</code> for case folding. These behave in exactly
+        the same way as in regular expressions.
+      </li>
+      <li style="list-style: none">
+        <br />
+      </li>
+      <li>
+        <code>(?(&lt;test&gt;)&lt;then-part&gt;|&lt;else-part&gt;</code>)
+        conditional expression where <code>&lt;test&gt;</code> may be one
+        of:<br />
+        <ul>
+          <li>
+            <a name="strcondtest" id="strcondtest">a reference number such as 1
+            etc which returns <code>TRUE</code> if the corresponding capturing
+            parentheses participated in the match.</a>
+          </li>
+          <li>a named reference which returns <code>TRUE</code> if the
+          corresponding capturing parentheses participated in the match.
+          </li>
+          <li>Forth code using the usual syntax <code>(?{forth code
+          sequence})</code> where the forth code must return <code>FALSE</code>
+          or a non-zero value taken as <code>TRUE</code>.
+          </li>
+        </ul>If the test returns <code>TRUE</code> the &lt;then-part&gt; is
+        interpreted otherwise the &lt;else-part&gt; is interpreted. The
+        &lt;then-part&gt; and &lt;else-part&gt;'s can be any valid String
+        Builder sequence, hence conditionals may be nested.
+      </li>
+      <li style="list-style: none">
+        <br />
+      </li>
+      <li>
+        <code>%&lt;flags&gt;&lt;minwidth&gt;&lt;precision&gt;&lt;long&gt;&lt;conversion&gt;</code>
+        or<br />
+        <code>(?%&lt;flags&gt;&lt;minwidth&gt;&lt;precision&gt;&lt;long&gt;&lt;conversion&gt;)</code><br />
+
+        format specification for converting numbers to strings. This is the
+        sprintf functionality provided in several programming languages (e.g.
+        C) and this follows the usual specifications for such
+        functionality:<br />
+        <br />
+        optional &lt;flags&gt; may be any of <code>-</code> for left
+        justification, <code>0</code> to use 0 as a padding character,
+        <code>+</code> to include a + sign for positive numbers,
+        <code>space</code> to leave a space for a positive number,
+        <code>#</code> for a variant of the main operation.<br />
+        The flag characters may be in any order<br />
+        <br />
+        optional &lt;minwidth&gt; for a minimum field width, may be a number or
+        <code>*</code> to indicate the width is on the stack.<br />
+        <br />
+        optional &lt;precision&gt; expressed as a <code>.</code> followed by a
+        number or <code>*</code> to indicate the width is on the stack.<br />
+        <br />
+        optional <code>l</code> to indicate a double length number.<br />
+        <br />
+        required conversion operation which may be:<br />
+        <code>d u c s x X o %</code> to indicate single integer, unsigned
+        integer, character, string, hexadecimal using <code>abcdef</code> for
+        <code>x</code> or <code>ABCDEF</code> for <code>X</code>, octal or the
+        <code>%</code> character respectively.<br />
+        <br />
+        The value converted (except for %) is taken from the top of the data
+        stack in the order in which they appear in the format
+        specification.<br />
+        <br />
+        Note that minimum width and precision numbers are read as decimal
+        numbers whatever the value of the Forth variable <code>BASE</code>. If
+        <code>*</code> is used for either of these, the corresponding number
+        must be above the other arguments on the stack<br />
+        <br />
+        The free-layout command (?x) has no effect on a format specification
+        i.e. white space, other than the space flag, is not permitted.<br />
+        <br />
+        Floating point conversions using the <code>f e E g G</code> characters
+        remain to be done. A useful addition might be conversion using the
+        current value of the Forth word <code>BASE</code>.<br />
+        <br />
+        Consult a C reference for the detailed semantics for format conversions
+        and see the test program for examples (where the alternative syntax is
+        mostly used, but either will do).
+      </li>
+    </ul>
+    <h2>
+      Future extensions and changes
+    </h2>
+    <p>
+      There is plenty of scope to add to the set of commands in the String
+      Builder and this will probably happen as experience is gained in its use.
+      Examples are the addition of other control structures e.g. loops but it
+      is unclear where the most cost-effective boundary lies between doing this
+      in the pattern string or in Forth.
+    </p>
+    <p>
+      The floating point options of the format command are outstanding.
+    </p>
+    <p>
+      For commands the String Builder has kept mostly to the regular expression
+      syntax of Perl. This may change in future versions.
+    </p>
+    <h2>
+      Concatenation buffer
+    </h2>
+    <p>
+      A simple concatenation buffer is provided to build up replacement strings
+      for text matched with regular expressions. Words to use this are:<br />
+      <br />
+      <code>clear-concat ( -- )</code> Empties the buffer.<br />
+      <br />
+      <code>concat ( caddr u -- )</code> Appends the string <code>(caddr
+      u)</code> to the contents of the buffer<br />
+      <br />
+      <code>concat-char ( char -- )</code> Appends a character to the
+      buffer.<br />
+      <br />
+      <code>get-concat ( -- caddr u )</code>Returns the contents of the
+      buffer<br />
+      <br />
+      For an example of use, see the test program.
+    </p>
+    <p>
+      The size of the concatenation buffer is set by constant
+      <code>cb-size</code> in file <code>regex.fth</code> and therefore may be
+      changed by the user.
+    </p>
+    <p>
+      The concatenation buffer may be deleted with: <code>cb delete</code>
+    </p>
+    <h2>
+      Further String Processing
+    </h2>
+    <p>
+      For more complex string processing a package such as <a class="body_link"
+      href=
+      "http://www-personal.umich.edu/~williams/archive/forth/strings/dstrings.html">
+      David Williams' Dynamic Strings Package</a> can be used, where embedded
+      code can be inserted into the pattern string to call words in the strings
+      package.
+    </p>
+    <h2>
+      <a name="future" id="future">8. Features for Future Versions</a>
+    </h2>
+    <p>
+      These features may be added in future versions, but not necessarily in
+      this order:
+    </p>
+    <ul>
+      <li>Integrate with a string handling library package
+      </li>
+      <li>Optimisation of regular expressions
+      </li>
+      <li>Better memory management e.g. deletion of regular expressions
+      </li>
+      <li>Relative back references <code>\g{-1}</code>
+      </li>
+      <li>Variable interpolation
+      </li>
+      <li>Grouped modifiers e.g.<code>(?i-msx)</code>
+      </li>
+      <li>Alternative named capture syntax <code>(?'name'...)</code>
+      </li>
+      <li>Alternative capture group numbering
+      </li>
+      <li>Enhanced operation of embedded code
+      </li>
+      <li>Recursive expressions
+      </li>
+      <li>Dynamic regular expressions
+      </li>
+      <li>Unicode support
+      </li>
+    </ul>
+    <h2>
+      <a name="exclude" id="exclude">9. Features excluded</a>
+    </h2>
+    <p>
+      There are no plans to include the following features:
+    </p>
+    <ul>
+      <li>Octal escapes <code>\num</code>
+      </li>
+      <li>In-line comments <code>(?#...)</code>
+      </li>
+      <li>Support for Forth systems with cells smaller than 32 bits.
+      </li>
+    </ul>
+    <h2>
+      <a name="notes" id="notes">10. Implementation Notes</a>
+    </h2>
+    <p>
+      The regular expression engine is based on the ideas given in the paper
+      <a class="body_link" href=
+      "http://swtch.com/~rsc/regexp/regexp1.html">Regular Expression Matching
+      Can Be Simple And Fast</a> by Russ Cox.
+    </p>
+    <p>
+      The regular expression and string builder parsers were generated by
+      <a class="body_link" href="../grace/grace.html">Grace</a> from BNF
+      specifications. In all there are three separate parsers in the package.
+    </p>
+    <p>
+      The state transition tables were generated by <a class="body_link" href=
+      "../lexgen/lexgen.html">LexGen</a>. There are four tables compacted into
+      a single table.
+    </p>
+    <h2>
+      <a name="ANSForth" id="ANSForth">11. ANS Forth compliancy</a>
+    </h2>
+    <p>
+      Regex requires a case-insensitive ANS Forth system. The following words
+      from the various ANS Forth word sets are used.
+    </p>
+    <ul>
+      <li>The Core word set:    <code>! #&gt; #s ' ( * + +! +loop , - . ." /
+      /mod 0&lt; 0= 1+ 1- 2! 2@ 2drop 2dup 2over 2swap : ; &lt; &lt;# = &gt;
+      &gt;body &gt;in &gt;number &gt;r ?dup @ abort" abs align aligned allot
+      and base begin bl c! c, c@ cell+ cells char char+ chars constant count cr
+      create decimal depth do does&gt; drop dup else emit environment? evaluate
+      execute exit find here hold i if immediate invert j literal loop lshift
+      max min mod move negate or over postpone r&gt; r@ recurse repeat rot
+      rshift s" source space spaces swap then type u&lt; unloop until variable
+      while word xor [ ['] [char] ]</code>
+      </li>
+      <li>The Core extension word set:    <code>.( .r 0&lt;&gt; 0&gt; 2&gt;r
+      2r&gt; 2r@ :noname &lt;&gt; ?do again case compile, endcase endof false
+      hex nip of pad parse pick refill roll to true tuck u&gt; value within
+      \</code>
+      </li>
+      <li>The Double-Number word set:    <code>2constant 2literal 2variable d=
+      dabs</code>
+      </li>
+      <li>The File-Access word set:    <code>included</code>
+      </li>
+      <li>The Memory-Allocation word set:    <code>allocate free</code>
+      </li>
+      <li>The Programming-Tools word set:    <code>.s</code>
+      </li>
+      <li>The Programming-Tools extension word set:    <code>[if] [else]
+      [then]</code>
+      </li>
+      <li>The String word set:    <code>/string cmove compare</code>
+      </li>
+    </ul>
+    <h2>
+      <a name="contact" id="contact">12. Contact</a>
+    </h2>
+    <p>
+      Any comments, feedback (good or bad), error reports etc will be
+      gratefully received, email <a class="body_link" href=
+      "mailto:gerry@jackson9000.fsnet.co.uk">Gerry Jackson</a>.
+    </p>
+    <h2>
+      <a name="history" id="history">13. Version history</a>
+    </h2>
+    <p>
+      v0.8   18 November 2010
+    </p>
+    <ul>
+      <li>Embedded Forth code now has free use of the data stack
+      </li>
+      <li>User value of BASE preserved across compilation of the Regex package
+      </li>
+      <li>Minor changes to work with 64 bit Forths (untested)
+      </li>
+      <li>Bug fix in String Builder to allow valid sub-expression references
+      </li>
+      <li>Code rationalisation with look ahead, look behind and related code
+      </li>
+    </ul>
+    <p>
+      v0.7   11 August 2010
+    </p>
+    <ul>
+      <li>Words <code>stringify</code> and <code>constant$</code> added.
+      </li>
+      <li>Embedded Forth code now has access to the contents of capturing
+      parentheses up to the point of executing the Forth code.
+      </li>
+      <li>Embedded Forth code must now leave the stack unchanged.
+      </li>
+      <li>Correction to stringer documentation. <a class="body_link" href=
+      "#strcondtest">Conditional test references</a> to capturing parentheses
+      are <code>(1)</code> not <code>(\1)</code>.
+      </li>
+      <li>Bug fix: Forth code sequences more than 32 characters long are now
+      permitted in embedded code.
+      </li>
+      <li>Bug fix: \# in x mode now recognised as escaped #.
+      </li>
+      <li>Bug fix: x mode is now ignored inside character classes.
+      </li>
+    </ul>
+    <p>
+      v0.6   31 July 2010
+    </p>
+    <ul>
+      <li>Lazy quantifiers <code>{n,m}? {n,}? {n}?</code> added
+      </li>
+      <li>Bug fix: Lazy quantifiers now return the correct string for enclosed
+      capturing parentheses
+      </li>
+    </ul>
+    <p>
+      v0.5   27 July 2010
+    </p>
+    <ul>
+      <li>Lazy quantifiers <code>?? *? +?</code> added
+      </li>
+      <li>Atomic groups and possessive quantifiers added
+      </li>
+      <li>Specification of <code>MATCH</code> changed to return the rest of the
+      subject string
+      </li>
+      <li>Early low level tests removed from the test program as high level
+      tests exercise the same functionality
+      </li>
+    </ul>
+    <p>
+      v0.4   10 June 2010
+    </p>
+    <ul>
+      <li>Conditional expressions added to regular expressions.
+      </li>
+      <li>Named references no longer use a <code>2variable</code>.
+      </li>
+      <li>Regular expressions such as <code>a(b*)*c</code> no longer crash.
+      </li>
+    </ul>
+    <p>
+      v0.3   24 May 2010
+    </p>
+    <ul>
+      <li>String Builder extensions:
+        <ul>
+          <li>conditional command
+          </li>
+          <li>formatted number conversions (like sprintf)
+          </li>
+        </ul>
+      </li>
+      <li>Empty look around permitted in regular expressions, in particular
+      <code>(?!)</code> always fails to match
+      </li>
+    </ul>
+    <p>
+      v0.2   7 May 2010
+    </p>
+    <ul>
+      <li>
+        <a class="body_link" href="#builder">String Builder</a> added.
+      </li>
+    </ul>
+    <p>
+      v0.1   23 April 2010
+    </p>
+    <ul>
+      <li>Specification of the word <code>match</code> changed.
+      </li>
+      <li>Bug fix, e.g. (?:a|b){3,5} now works correctly
+      </li>
+      <li>List handling during compilation simplified
+      </li>
+      <li>Less stack noise during execution of the regex NFA engine
+      </li>
+      <li>File <code>regexutils.fth</code> added to provide words such as
+      <code>substitute</code> and a simple string concatenation buffer.
+      </li>
+    </ul>
+    <p>
+      v0.0   2 April 2010
+    </p>
+    <ul>
+      <li>Initial development release
+      </li>
+    </ul>
+    <h2>
+      14. Some ANS Forth Software
+    </h2>
+    <p>
+      <a class="body_link" href="../home.html">Home</a>
+    </p><?php include "regexcounter.php"; ?>
+  </body>
+</html>
