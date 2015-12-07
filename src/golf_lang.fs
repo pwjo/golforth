@@ -33,11 +33,12 @@ create slice_start 0 ,
 : make_array_xt { addr n -- }
     :noname addr POSTPONE LITERAL n POSTPONE LITERAL POSTPONE typeno_array POSTPONE ; ;
 
-( XXX noch verdreht weil faul )
 : anon_array
-    here depth slice_start @ - dup >r
-    1 u+do
-        swap ,
+    here depth slice_start @ - 1- dup >r
+    dup cells dup  allot
+    rot + swap
+    0 u+do
+        cell - tuck !
     loop r>
     make_array_xt ;
 
@@ -77,7 +78,7 @@ create slice_start 0 ,
     val invert anon_int ;
 
 : golf_sim_array ( tarr -- )
-    val 1- 0 u+do
+    val 0 u+do
         dup i cells + @ tuck drop
     loop drop ;
 
@@ -139,7 +140,6 @@ create slice_start 0 ,
     golf_@
     val . val . val type val . ;
 
-( XXX arrays noch verdreht aktuell )
 ( [1 3 5][10 32]+ -> [1 3 5 10 32] )
 : test_golf_+_array
     golf_slice_start 1 anon_int 3 anon_int  5 anon_int anon_array
@@ -147,7 +147,6 @@ create slice_start 0 ,
     golf_+ golf_sim
     val . val . val . val . val . ;
 
-( XXX noch verkehrt wegen array verdreher )
 ( [3 8]~~+ )
 : test_golf_+_int
     golf_slice_start 3 anon_int 8 anon_int anon_array
