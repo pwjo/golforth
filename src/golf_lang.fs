@@ -121,6 +121,8 @@ create slice_start 0 ,
 \ --------------------------
 : golf_@ rot ;
 : golf_; drop ;
+: golf_. dup ;
+: golf_\ swap ;
 
 
 \ ----------------------------
