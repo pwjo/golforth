@@ -1,0 +1,314 @@
+\documentclass{beamer}
+
+\usepackage[utf8]{inputenc}
+
+%\usepackage[ngerman]{babel}
+\usepackage{color}
+\usepackage{colortbl}
+\usepackage{scalefnt}
+\usepackage{tikz}
+\usepackage{amssymb}
+\usetikzlibrary{arrows,shapes,snakes,positioning,fit,shadows,matrix,calc,patterns}
+\usepackage{geometry}
+\usepackage{pgfpages}
+\usepackage{verbatim}
+\usepackage{paralist}
+\usepackage{listings}
+\usepackage{multirow}
+\usepackage{hhline}
+\usepackage{hyphenat}
+
+\usepackage{textpos}
+\usepackage{environ}
+
+\pgfdeclarelayer{background}
+\pgfdeclarelayer{foreground}
+\pgfsetlayers{background,main,foreground}
+
+
+\definecolor{COL_DATA_CELL}{HTML}{2032B0}
+
+
+%
+% TIKZ STYLES AND DEFINES
+%
+
+\def\tinydist{0.4cm}    % defines the distance between global components
+\def\smalldist{1.2cm}   % defines the distance between global components
+\def\bigdist{1.8cm}     % defines the distance between products and global components
+
+\tikzstyle{stylearrow} = [draw,>=latex']
+\tikzstyle{labelnode} = []
+\tikzstyle{stylenode} = [text width=2cm,fill=white,minimum height=1.5cm,rounded corners,text centered,draw]
+
+
+
+\tikzstyle{stylenetwork} = [fill=white,ellipse,draw,inner sep=0.6cm,decoration=snake,decorate]
+\tikzstyle{styleinterfaces} = [fill=white,draw,decorate]
+      
+\newcommand{\examplerequest}[1] { \vspace{3mm} \begin{tikzpicture} \node [request_example] {\texttt{#1} }; \end{tikzpicture}  }
+\tikzstyle{request_example}=[draw, rounded corners,fill=white,inner sep=6pt,text width=10cm]
+
+
+
+
+%
+% header
+%
+\defbeamertemplate{headline}{pres header}{%
+    \vspace{5mm}
+    \begin{tikzpicture} 
+
+    \node [draw=none,fill=white,text width=12.5cm,inner sep=0pt,minimum height=0.6cm] (headernode) { }; % the right one
+
+    \path (headernode.west) node [anchor=west,xshift=10pt] { \Large{{\textcolor{black}{ \insertsection } }}};
+
+%    \path (headernode.east) node [anchor=east] { \includegraphics[width=4cm]{gfx/logo_web_transp_fontblue.pdf} };
+
+    \path [draw] (headernode.south west) -- (headernode.south east);
+
+
+\end{tikzpicture} 
+
+}
+
+\defbeamertemplate{headline}{my empty header}{%
+}
+
+
+
+
+%
+% basic tikz frame for each slide
+%
+\NewEnviron{tikzframe}{%
+\begin{frame} 
+\vspace{1cm} 
+\begin{center} 
+\begin{tikzpicture} 
+\node [minimum width=10.5cm,minimum height=7.2cm,draw=none] (framenode) {};  
+\BODY
+\end{tikzpicture} 
+\end{center} 
+\end{frame}}
+
+%
+% subtext for tikzframes
+\newcommand\tikzframesubtext[1]{
+    \path (framenode.south) node [anchor=south] {#1}; 
+}
+
+
+
+
+\newcommand{\zwischenueberschrift}[1] { 
+    \Huge{#1}
+}
+
+\newcommand{\ueberschrift}[1] { 
+    \textbf{#1}
+}
+
+
+
+
+
+%
+% DOCUMENT
+%
+
+
+\begin{document}
+
+
+
+
+\setbeamertemplate{headline}[pres header]
+
+
+
+%
+% defs
+%
+
+
+
+
+
+
+\section{Golforth}
+
+\begin{frame}
+\begin{center}
+\zwischenueberschrift{Forth Golfscript Interpreter}
+\end{center}
+\end{frame}
+
+
+\begin{frame}
+\begin{center}
+\zwischenueberschrift{Golfscript}
+\end{center}
+\end{frame}
+
+
+\begin{frame}
+    
+    \vspace{0.5cm}
+
+    Code Golf 
+    \begin{itemize}
+    \item shortest possible source code that implements an algorithm  
+    \item solving problems (holes) in as few keystrokes as possible
+    \end{itemize}
+
+    \vspace{0.5cm}
+    \pause 
+
+    Golfscript
+    \begin{itemize}
+        \item stack oriented, variables exist
+        \item single symbols represent high level operations  
+        \item strong typed
+        \item heavy use of operator overloading and type coercion
+    \end{itemize}
+\end{frame}
+
+
+\begin{frame}
+    
+    \vspace{0.5cm}
+
+    Golfscript Types
+    \begin{itemize}
+        \item Integer: \texttt{1 2}
+        \item Arrays:  \texttt{[1 2 3] [3]}
+        \item Strings: \texttt{"one two three"}
+        \item Blocks:  \texttt{\{1+\}}
+    \end{itemize}
+
+    \vspace{0.5cm}
+    \pause 
+
+    Golfscript Operator Example
+    \begin{itemize}
+        \item \texttt{12 3 * -> 36}
+        \item \texttt{[50 51 52]' '* -> "50 51 52"}
+    \end{itemize}
+
+
+\end{frame}
+
+
+\begin{frame}
+\begin{center}
+\zwischenueberschrift{Forth Implementation}
+\end{center}
+\end{frame}
+
+
+\begin{frame}
+    Typesystem
+    \begin{itemize}
+        \item typisierter ausdruck ist scalar am stack
+        \item Anonyme functions (words) vs Storage
+        \item werden anonyme funktionen wieder geloescht wenn sie nicht referenziert werden?
+        \item vorteil speicher: es kommen nur benoetigte elemente auf den stack (zb nur den typ fetchen)
+        \item garbage collector vom ertl?
+    \end{itemize}
+
+
+    \vspace{0.5cm}
+\texttt{12 anon\_int s" 1 anon\_int golf\_+" anon\_block -> 2 elements on stack}
+
+\end{frame}
+
+\begin{frame}
+    Arrays
+
+    \begin{itemize}
+        \item Not in syntax, operator
+        \item code
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    Blocks
+
+    \begin{itemize}
+        \item Stored as already translated strings
+        \item code
+    \end{itemize}
+\end{frame}
+
+
+\begin{frame}
+    Preprocessor
+    \begin{itemize}
+        \item translates golfscript to forth based intermediate 
+        \item based on regular expression of reference implementation 
+        \item Responsible for:
+        \begin{itemize}
+            \item infer initial type from syntax
+            \item symbol table for variables
+        \end{itemize}
+    \end{itemize}
+
+
+    \vspace{0.5cm}
+
+\begin{center}
+    \small{    
+\texttt{"2 \{1+\}:x"}  \\
+$\downarrow$ \\
+\texttt{2 anon\_int s" 1 anon\_int golf\_+" anon\_block create golf\_x , }
+}
+\end{center}
+
+\end{frame}
+
+
+
+
+
+\begin{frame}
+    Type Coercion and Overloading
+
+    \begin{itemize}
+        \item einstellige operation fuer overloading
+        \item zweistellige mit coerce
+        \item hinweis das hier jede menge operationen in forth zu coden sind, 
+              evtl nicht vollstaendig
+    \end{itemize}
+\end{frame}
+
+
+\begin{frame}
+    Conditionals and Loops
+
+    \begin{itemize}
+        \item functions which take code blocks as arguments
+    \end{itemize}
+\end{frame}
+
+
+\begin{frame}
+    Cutbacks
+    \begin{itemize}
+    \item Error Handling differs
+    \item Probably not all operators implemented
+    \end{itemize}
+\end{frame}
+
+
+\begin{frame}
+    Usage of Idiomatic Forth
+    \begin{itemize}
+    \item stack paradigma mapped to typed language
+    \item Macros?
+    \end{itemize}
+\end{frame}
+
+
+
+\end{document}
