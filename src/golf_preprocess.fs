@@ -1,4 +1,12 @@
+
+\ broken with eval
+wordlist constant golf-wordlist
+
+\ get-order golf-wordlist swap 1+ set-order 
+
 s" regex/regex.fth" included
+
+
 
 S\" ^[a-zA-Z_][a-zA-Z0-9_]*" regex$ constant rgx-variable-string
 S\" ^'((?:\\\\.|[^'])*)'?" regex$ constant rgx-string-single
@@ -9,6 +17,7 @@ S\" ^:" regex$ constant rgx-store
 S\" ^\\{" regex$ constant rgx-block-start
 S\" ^\\}" regex$ constant rgx-block-end
 S\" ^." regex$ constant rgx-variable-char
+
 
 
 create mapping-operators
@@ -24,7 +33,7 @@ addr2 addr u1 + u2 move
 addr u ;
 
 
-: get-mapping { caddr u map-table --  caddr u | caddr1 u1 }
+: get-mapping { caddr u map-table --  0 | caddr1 u1 }
 
     0 map-table ?DO
         
@@ -41,27 +50,57 @@ addr u ;
 
     4 cells +LOOP 
 
-    invert IF caddr u THEN
+    invert IF 0 THEN
 ;
 
 
+: create-variable { addr u -- }
 
-\ standard signature ( buffer buffer-len addr u  -- )
+        s" create " dup u + chars allocate  
+        2swap str-append 
+        addr u str-append
+
+        get-current { w } 
+        golf-wordlist set-current
+        evaluate 
+        w set-current 
+;
+
+
 : append-with-spaces { buffer buffer-len addr u } buffer buffer-len s"  " str-append addr u str-append ;
 
-: execute-variable  mapping-operators get-mapping append-with-spaces ;
+: execute-op-or-var  mapping-operators get-mapping dup if append-with-spaces else drop then ;
 
 : execute-string  { buf buf-len addr u } buf buf-len S\"  S\\\" " str-append addr u str-append S\" \" anon_str " str-append ;
-: execute-integer ( buf buf-len addr u -- adr1 u1)  str-append s"  anon_int"  str-append ;
-: execute-store   { buf buf-len addr u }  buf buf-len s"  create " str-append addr u str-append s"  ," str-append ;
-: execute-comment 2drop ;
-: execute-block-start 2drop ;
-: execute-block-end 2drop ;
+: execute-integer ( buf buf-len addr u -- adr1 u1)  append-with-spaces s"  anon_int"  str-append ;
+
+
+: execute-variable-use  ( buf buf-len addr u ) append-with-spaces ;
+
+: execute-store   { buf buf-len addr u }  
+
+    \ check for variable existence, 
+    \ and register if not in wordlist
+    addr u golf-wordlist search-wordlist 0= if
+    \ addr u find-name 0= if
+        addr u create-variable 
+    else 
+        drop
+    then 
+
+    \ the we execute the store, but we also put it on the stack
+    buf buf-len s"  dup " str-append addr u append-with-spaces s"  ," str-append 
+
+;
+
+: execute-comment       2drop ;
+: execute-block-start   2drop ;
+: execute-block-end     2drop ;
 
 
 
 create token-rules
-rgx-variable-string , 0 , ' execute-variable , \ variable - string variant
+rgx-variable-string , 0 , ' execute-op-or-var , \ variable - string variant
 rgx-string-single   , 1 , ' execute-string ,   \ string - single quotes
 rgx-string-double   , 1 , ' execute-string ,   \ string - double quotes
 rgx-integer         , 0 , ' execute-integer ,  \ integer
@@ -70,7 +109,7 @@ rgx-store           , 0 , ' execute-store ,    \ : store variables
 rgx-block-start     , 0 , ' execute-block-start ,    \ block treatment
 rgx-block-end       , 0 , ' execute-block-end ,  
 rgx-store           , 0 , ' execute-store ,    \ : store variables 
-rgx-variable-char   , 0 , ' execute-variable , \ variable - char variant
+rgx-variable-char   , 0 , ' execute-op-or-var , \ variable - char variant
 0 ,
 
 
@@ -125,17 +164,17 @@ rgx-variable-char   , 0 , ' execute-variable , \ variable - char variant
     dup 0= if drop buffer buffer-len 0 EXIT then
 
     \ standard execute stack:
-    \ ( buffer buffer-len addr u  -- )
     CASE 
     
         \ 
         \ special case: store operation ':' 
         \ 
         ['] execute-store OF
-            2drop              \ we throw away the execute and the string 
+            2drop              \ we throw away the string  ':'
             get-execute-token if    \ no match no problem, see reference implementation in ruby ;)
 
-                buffer execute-store
+                buffer buffer-len 2swap 
+                execute-store
             then
 
             -1
@@ -155,9 +194,7 @@ rgx-variable-char   , 0 , ' execute-variable , \ variable - char variant
             while
             repeat
 
-            buffer 
-            buffer-len 
-
+            buffer buffer-len 
             S\" S\\\" " str-append
 
             2swap str-append
@@ -175,12 +212,36 @@ rgx-variable-char   , 0 , ' execute-variable , \ variable - char variant
         ENDOF
 
     \ 
-    \ standard execution
+    \ standard token execution (everyring but '{' '}' or ':'
     \ 
     { addr u xt }
-    buffer buffer-len addr u xt 
 
-    execute -1
+    
+    \ first we have to check if we are a variable
+     addr u golf-wordlist search-wordlist  \ notice that we are using find-name instead of find becuase
+     \ addr u find-name  \ notice that we are using find-name instead of find becuase
+                          \ we don't need a counted string in mem for that, if you have
+                          \ portability issues, you can easily rewrite this
+    if drop
+
+
+        \ for now we still exclude operators
+\        addr u mapping-operators get-mapping  \ 
+\        dup if 2drop
+\            buffer buffer-len addr u xt  \ 
+\            execute \ 
+\        else drop \ 
+
+            buffer buffer-len addr u 
+            execute-variable-use 
+\        then  \ 
+    else                          
+
+        buffer buffer-len addr u xt 
+        execute
+    then 
+    -1
+            
     0 \ this is a dummy for drop in the endcase
     ENDCASE 
 
@@ -191,13 +252,13 @@ rgx-variable-char   , 0 , ' execute-variable , \ variable - char variant
 
 4096 chars allocate \ start buffer
 
+
 begin 
     execute-token
     while 
 repeat  
     rot drop
     rot drop
-
 
 ;
 
