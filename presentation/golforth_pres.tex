@@ -194,6 +194,8 @@
     \begin{itemize}
         \item \texttt{12 3 * -> 36}
         \item \texttt{[50 51 52]' '* -> "50 51 52"}
+        \item \texttt{[1 2 3]\{1+\}/ -> 2 3 4 }
+        \item \texttt{\{.@\textbackslash\%.\}do;}  \texttt{( n1 n2 -- gcd )}
     \end{itemize}
 
 
@@ -210,16 +212,18 @@
 \begin{frame}
     Typesystem
     \begin{itemize}
-        \item typisierter ausdruck ist scalar am stack
-        \item Anonyme functions (words) vs Storage
-        \item werden anonyme funktionen wieder geloescht wenn sie nicht referenziert werden?
-        \item vorteil speicher: es kommen nur benoetigte elemente auf den stack (zb nur den typ fetchen)
-        \item garbage collector vom ertl?
+        \item Values as scalar references on stack
+        \item Anonyme functions vs Memory
     \end{itemize}
 
 
     \vspace{0.5cm}
-\texttt{12 anon\_int s" 1 anon\_int golf\_+" anon\_block -> 2 elements on stack}
+
+    \begin{center}
+        \texttt{12 anon\_int s" 1 anon\_int golf\_+" anon\_block} \\
+        $\downarrow$ \\
+        \texttt{2 elements on stack}
+    \end{center}
 
 \end{frame}
 
@@ -237,31 +241,35 @@
 
     \begin{itemize}
         \item Stored as already translated strings
-        \item code
+        \item Operations: \texttt{2\{1+\}+ }$\rightarrow$ \texttt{\{2 1+\}}
+        \item Execution via \texttt{evaluate}
     \end{itemize}
 \end{frame}
 
 
 \begin{frame}
-    Preprocessor
+    Parser
     \begin{itemize}
-        \item translates golfscript to forth based intermediate 
+        \item translates golfscript to forth based intermediate strings
         \item based on regular expression of reference implementation 
         \item Responsible for:
         \begin{itemize}
             \item infer initial type from syntax
-            \item symbol table for variables
+            \item symbol table for variable tracking
+            \item note that every value can be a variable!
         \end{itemize}
     \end{itemize}
 
 
-    \vspace{0.5cm}
+    %\vspace{0.3cm}
 
 \begin{center}
     \small{    
 \texttt{"2 \{1+\}:x"}  \\
 $\downarrow$ \\
-\texttt{2 anon\_int s" 1 anon\_int golf\_+" anon\_block create golf\_x , }
+(creating x in symbol table) \\
+$\downarrow$ \\
+\texttt{2 anon\_int s" 1 anon\_int golf\_+" anon\_block x , }
 }
 \end{center}
 
@@ -275,20 +283,57 @@ $\downarrow$ \\
     Type Coercion and Overloading
 
     \begin{itemize}
-        \item einstellige operation fuer overloading
-        \item zweistellige mit coerce
-        \item hinweis das hier jede menge operationen in forth zu coden sind, 
-              evtl nicht vollstaendig
+        \item Typeorder for Coercion
+        \item Coercion according to highest order type
+        \item Heavy operator overloading results in wide range of functionality
+
     \end{itemize}
 \end{frame}
 
 
-\begin{frame}
+\begin{frame}[fragile]
+
+\small \begin{lstlisting}
+
+*: Multiplication
+    2 4* -> 8
+
+*: Execute a block a certain number of times
+    2 {2*} 5* -> 64
+
+*: Array/string repeat
+    [1 2 3]2* -> [1 2 3 1 2 3]
+    3'asdf'* -> "asdfasdfasdf"
+
+*: Join
+    [1 2 3]','* -> "1,2,3"
+    [1 2 3][4]* -> [1 4 2 4 3]
+
+*: Fold
+    [1 2 3 4]{+}* -> 10
+    'asdf'{+}* -> 414
+
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]
+    \vspace{0.5cm}
     Conditionals and Loops
 
     \begin{itemize}
-        \item functions which take code blocks as arguments
+        \item \texttt{5\{1-..\}do} $\rightarrow$ 4 3 2 1 0 0
+        \item \texttt{5\{.\}\{1-.\}while}  $\rightarrow$  4 3 2 1 0 0
+        \item \texttt{5\{.\}\{1-.\}until}  $\rightarrow$  5
+        \item implemented as words which consume code blocks
     \end{itemize}
+    \begin{verbatim}
+        : golf_do { block }
+            BEGIN
+                block golf_execute
+            WHILE
+            REPEAT ;
+    \end{verbatim}
 \end{frame}
 
 
@@ -304,8 +349,10 @@ $\downarrow$ \\
 \begin{frame}
     Usage of Idiomatic Forth
     \begin{itemize}
-    \item stack paradigma mapped to typed language
-    \item Macros?
+    \item Stack paradigma mapped to typed language
+    \item Wordlists for variable tracking 
+    \item Macros \& anonym functions for language implementation
+    \item Macros for operator implementation
     \end{itemize}
 \end{frame}
 
