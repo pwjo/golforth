@@ -6,6 +6,7 @@
 ( Nur ein Level atm )
 create slice_start 0 ,
 
+
 \ -------------------------
 \ - Named konstruktoren
 \ -------------------------
@@ -34,10 +35,9 @@ create slice_start 0 ,
     :noname addr POSTPONE LITERAL n POSTPONE LITERAL POSTPONE typeno_array POSTPONE ; ;
 
 : anon_array
-    here depth slice_start @ - 1- dup >r
-    dup cells dup  allot
-    rot + swap
-    0 u+do
+    depth slice_start @ - dup >r
+    dup cells dup  allocate drop
+    + swap 0 u+do
         cell - tuck !
     loop r>
     make_array_xt ;
