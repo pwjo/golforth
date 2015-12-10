@@ -1,0 +1,16 @@
+\vspace{0.5cm}
+    Conditionals and Loops
+
+    \begin{itemize}
+        \item \texttt{5\{1-..\}do} $\rightarrow$ 4 3 2 1 0 0
+        \item \texttt{5\{.\}\{1-.\}while}  $\rightarrow$  4 3 2 1 0 0
+        \item \texttt{5\{.\}\{1-.\}until}  $\rightarrow$  5
+        \item implemented as words which consume code blocks
+    \end{itemize}
+    \begin{verbatim}
+        : golf_do { block }
+            BEGIN
+                block golf_execute
+            WHILE
+            REPEAT ;
+    \end{verbatim}

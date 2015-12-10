@@ -5,6 +5,7 @@
 %\usepackage[ngerman]{babel}
 \usepackage{color}
 \usepackage{colortbl}
+\usepackage{alltt}
 \usepackage{scalefnt}
 \usepackage{tikz}
 \usepackage{amssymb}
@@ -213,16 +214,34 @@
     Typesystem
     \begin{itemize}
         \item Values as scalar references on stack
-        \item Anonyme functions vs Memory
+        \item Anonymous functions vs Memory
+          \begin{itemize}
+          \item
+            \begin{alltt}
+              \scriptsize
+              : anon\_int \{ u -- typext \} \\
+              \quad:noname  u POSTPONE LITERAL POSTPONE typeno\_int  POSTPONE ; ;
+            \end{alltt}
+          \item
+            \begin{alltt}
+              \scriptsize
+              : anon\_int \{ u -- addr \}\\
+              \quad 2 cells allocate IF\\
+              \qquad abort\\
+              \quad ELSE\\
+              \qquad tuck ! typeno\_int over cell+ !\\
+              \quad ENDIF\\
+            \end{alltt}
+          \end{itemize}
     \end{itemize}
 
 
-    \vspace{0.5cm}
+%    \vspace{0.1cm}
 
     \begin{center}
         \texttt{12 anon\_int s" 1 anon\_int golf\_+" anon\_block} \\
         $\downarrow$ \\
-        \texttt{2 elements on stack}
+        \texttt{2 elements on stack (12 and \{1+\})}
     \end{center}
 
 \end{frame}
@@ -231,9 +250,42 @@
     Arrays
 
     \begin{itemize}
-        \item Not in syntax, operator
-        \item code
+        \item Construction similar to postscript.
+        \item \textbf{[} marks stack size, \textbf{]} collects back to marked size.
+        \item Mark moves when stack becomes smaller:\\
+          \begin{alltt}
+            1 2 [\textbackslash] -> [2 1]
+          \end{alltt}
+
     \end{itemize}
+\end{frame}
+
+\begin{frame}
+  Arrays Implementation
+
+  \vspace{0.5cm}
+
+    \begin{alltt}
+      \scriptsize
+      : golf\_slice\_start ( -- ) \\
+      \quad depth slice\_start ! ;
+    \end{alltt}\\
+
+    \begin{alltt}
+      \scriptsize
+      : anon\_array ( x1 ... xn -- array ) \\
+      \quad depth slice\_start @ - dup >r \\
+      \quad dup cells dup  allocate \\
+      \quad + swap 0 u+do \\
+      \qquad cell tuck ! \\
+      \quad loop r> \\
+      \quad \dots ; \\
+    \end{alltt}\\
+
+    \begin{alltt}
+      \scriptsize
+      [1 3 5] -> golf\_slice\_start 1 anon\_int 3 anon\_int  5 anon\_int anon\_array
+    \end{alltt}
 \end{frame}
 
 \begin{frame}
