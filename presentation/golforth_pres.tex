@@ -269,7 +269,7 @@
       \scriptsize
       : golf\_slice\_start ( -- ) \\
       \quad depth slice\_start ! ;
-    \end{alltt}\\
+    \end{alltt}
 
     \begin{alltt}
       \scriptsize
@@ -280,7 +280,7 @@
       \qquad cell tuck ! \\
       \quad loop r> \\
       \quad \dots ; \\
-    \end{alltt}\\
+    \end{alltt}
 
     \begin{alltt}
       \scriptsize
@@ -328,6 +328,54 @@ $\downarrow$ \\
 \end{frame}
 
 
+\begin{frame}[fragile]
+
+  \vspace{0.5cm}
+Implementation: Rule Table
+    \small
+\begin{verbatim}
+create token-rules
+rgx-variable-string , 0 , ' execute-op-or-var , 
+rgx-string-single   , 1 , ' execute-string ,    
+rgx-string-double   , 1 , ' execute-string ,    
+rgx-integer         , 0 , ' execute-integer ,   
+rgx-comment         , 0 , ' execute-comment ,   
+rgx-store           , 0 , ' execute-store ,     
+rgx-block-start     , 0 , ' execute-block-start ,  
+rgx-block-end       , 0 , ' execute-block-end ,  
+rgx-store           , 0 , ' execute-store ,     
+rgx-variable-char   , 0 , ' execute-op-or-var , 
+0 ,
+\end{verbatim}
+
+
+\end{frame}
+
+\begin{frame}[fragile]
+
+  \vspace{0.5cm}
+Implementation: Regexp for Strings
+    \small
+\begin{verbatim}
+S\" ^'((?:\\\\.|[^'])*)'?" regex$ constant rgx-string-single
+S\" ^\"((?:\\\\.|[^\"])*)\"?" regex$ constant rgx-string-double
+\end{verbatim}
+
+  \vspace{0.5cm}
+\large
+Implementation: Immediate Generator for Strings
+    \small
+\begin{verbatim}
+: execute-string  { buf buf-len addr u } 
+
+    buf buf-len S\"  S\\\" " str-append 
+    addr u str-append 
+    S\" \" anon_str " str-append 
+;
+\end{verbatim}
+
+
+\end{frame}
 
 
 
