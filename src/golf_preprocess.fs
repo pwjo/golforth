@@ -1,8 +1,5 @@
-
-\ broken with eval
 wordlist constant golf-wordlist
 
-\ get-order golf-wordlist swap 1+ set-order 
 
 s" regex/regex.fth" included
 
@@ -66,31 +63,55 @@ addr u ;
         w set-current 
 ;
 
+: append-with-spaces { buffer buffer-len addr u -- addr3 u3 } 
 
-: append-with-spaces { buffer buffer-len addr u } buffer buffer-len s"  " str-append addr u str-append ;
+    buffer buffer-len s"  " str-append addr u str-append 
+;
 
-: execute-op-or-var  mapping-operators get-mapping dup if append-with-spaces else drop then ;
+: execute-op-or-var  
 
-: execute-string  { buf buf-len addr u } buf buf-len S\"  S\\\" " str-append addr u str-append S\" \" anon_str " str-append ;
-: execute-integer ( buf buf-len addr u -- adr1 u1)  append-with-spaces s"  anon_int"  str-append ;
+    mapping-operators get-mapping 
+    dup if 
+        append-with-spaces 
+    else 
+        drop 
+    then 
+;
+
+: execute-string  { buf buf-len addr u } 
+
+    buf buf-len S\"  S\\\" " str-append 
+    addr u str-append 
+    S\" \" anon_str " str-append 
+;
 
 
-: execute-variable-use  ( buf buf-len addr u ) append-with-spaces ;
+: execute-integer ( buf buf-len addr u -- addr1 u1)  
+    
+    append-with-spaces 
+    s"  anon_int"  str-append 
+;
+
+
+: execute-variable-use  ( buf buf-len addr u ) 
+
+    append-with-spaces 
+;
 
 : execute-store   { buf buf-len addr u }  
 
     \ check for variable existence, 
     \ and register if not in wordlist
     addr u golf-wordlist search-wordlist 0= if
-    \ addr u find-name 0= if
         addr u create-variable 
     else 
         drop
     then 
 
-    \ the we execute the store, but we also put it on the stack
-    buf buf-len s"  dup " str-append addr u append-with-spaces s"  ," str-append 
-
+    \ the we execute the store in immediate format
+    buf buf-len s"  " str-append 
+    addr u append-with-spaces 
+    s"  ," str-append 
 ;
 
 : execute-comment       2drop ;
@@ -101,14 +122,14 @@ addr u ;
 
 create token-rules
 rgx-variable-string , 0 , ' execute-op-or-var , \ variable - string variant
-rgx-string-single   , 1 , ' execute-string ,   \ string - single quotes
-rgx-string-double   , 1 , ' execute-string ,   \ string - double quotes
-rgx-integer         , 0 , ' execute-integer ,  \ integer
-rgx-comment         , 0 , ' execute-comment ,  \ comment
-rgx-store           , 0 , ' execute-store ,    \ : store variables 
-rgx-block-start     , 0 , ' execute-block-start ,    \ block treatment
+rgx-string-single   , 1 , ' execute-string ,    \ string - single quotes
+rgx-string-double   , 1 , ' execute-string ,    \ string - double quotes
+rgx-integer         , 0 , ' execute-integer ,   \ integer
+rgx-comment         , 0 , ' execute-comment ,   \ comment
+rgx-store           , 0 , ' execute-store ,     \ : store variables 
+rgx-block-start     , 0 , ' execute-block-start ,  \ block treatment
 rgx-block-end       , 0 , ' execute-block-end ,  
-rgx-store           , 0 , ' execute-store ,    \ : store variables 
+rgx-store           , 0 , ' execute-store ,     \ : store variables 
 rgx-variable-char   , 0 , ' execute-op-or-var , \ variable - char variant
 0 ,
 
@@ -218,23 +239,10 @@ rgx-variable-char   , 0 , ' execute-op-or-var , \ variable - char variant
 
     
     \ first we have to check if we are a variable
-     addr u golf-wordlist search-wordlist  \ notice that we are using find-name instead of find becuase
-     \ addr u find-name  \ notice that we are using find-name instead of find becuase
-                          \ we don't need a counted string in mem for that, if you have
-                          \ portability issues, you can easily rewrite this
+     addr u golf-wordlist search-wordlist 
     if drop
-
-
-        \ for now we still exclude operators
-\        addr u mapping-operators get-mapping  \ 
-\        dup if 2drop
-\            buffer buffer-len addr u xt  \ 
-\            execute \ 
-\        else drop \ 
-
-            buffer buffer-len addr u 
-            execute-variable-use 
-\        then  \ 
+        buffer buffer-len addr u 
+        execute-variable-use 
     else                          
 
         buffer buffer-len addr u xt 

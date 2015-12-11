@@ -19,6 +19,7 @@ get-filename slurp-file
 
 golf-preprocess
 
+get-order golf-wordlist swap 1+ set-order
 evaluate
 
 dump_stack cr
