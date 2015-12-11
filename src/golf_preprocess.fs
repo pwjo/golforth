@@ -116,7 +116,16 @@ addr u ;
 
 : execute-comment       2drop ;
 : execute-block-start   2drop ;
-: execute-block-end     2drop ;
+
+: execute-block-end ( buf buf-len addr u )  
+
+    2swap
+    S\"  S\\\" " str-append
+
+    2swap str-append
+
+    S\" \" anon_block" str-append
+;
 
 
 
@@ -174,11 +183,27 @@ rgx-variable-char   , 0 , ' execute-op-or-var , \ variable - char variant
 ;
 
 
+Defer execute-token ( caddr u buffer buffer-len -- caddr1 u1 append-addr1 append-u1 flag )
 
-: execute-token { caddr u buffer buffer-len -- caddr1 u1 append-addr1 append-u1 flag }
+
+: collect-block-token { buffer buffer-len -- caddr1 u1 }
+
+    4096 chars allocate 
+
+    begin
+        execute-token dup
+        -2 = if drop 0 then
+    while
+    repeat
+
+    buffer buffer-len 2swap
+    execute-block-end
+;
+
+
+: execute-token-impl { caddr u buffer buffer-len -- caddr1 u1 append-addr1 append-u1 flag }
 
     caddr u
-
     get-execute-token
 
     \ exit if nothing was found
@@ -205,31 +230,14 @@ rgx-variable-char   , 0 , ' execute-op-or-var , \ variable - char variant
         \ special case: block start '{' 
         \ 
         ['] execute-block-start OF
-            2drop
-
-            4096 chars allocate 
-
-            begin
-                recurse dup
-                -2 = if drop 0 then
-            while
-            repeat
-
-            buffer buffer-len 
-            S\" S\\\" " str-append
-
-            2swap str-append
-
-            S\" \" anon_block" str-append
-
-            -1
+            s" block start" type
+            2drop  buffer buffer-len 
+            collect-block-token -1
         ENDOF
 
         
         ['] execute-block-end OF
-            2drop
-            buffer buffer-len
-            -2
+            2drop buffer buffer-len -2
         ENDOF
 
     \ 
@@ -254,6 +262,10 @@ rgx-variable-char   , 0 , ' execute-op-or-var , \ variable - char variant
     ENDCASE 
 
 ;
+
+
+' execute-token-impl IS execute-token
+
 
 
 : golf-preprocess ( caddr u -- caddr1 u1 )

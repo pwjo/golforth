@@ -11,7 +11,7 @@ then
 
 : dump_stack
 depth 0 +do 
-    val .
+    val_dump
 LOOP
 ;
 
@@ -19,8 +19,12 @@ get-filename slurp-file
 
 golf-preprocess
 
+cr 2dup type cr
+
 get-order golf-wordlist swap 1+ set-order
 evaluate
+
+cr s" stack:" type .s cr
 
 dump_stack cr
 
