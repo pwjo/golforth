@@ -68,6 +68,17 @@ create slice_start 0 ,
 : val ( xt -- x )
     execute drop ;
 
+: val_dump ( xt -- )    
+    execute 
+    CASE
+        typeno_int OF . ENDOF
+        typeno_str OF type ENDOF
+        typeno_block OF type ENDOF
+        typeno_array OF . . ENDOF
+    ENDCASE ;
+
+
+
 \ -----------------------------
 \ - Golfscript ~ Operator
 \ ----------------------------

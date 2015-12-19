@@ -270,8 +270,7 @@ Defer execute-token ( caddr u buffer buffer-len -- caddr1 u1 append-addr1 append
 
 : golf-preprocess ( caddr u -- caddr1 u1 )
 
-4096 chars allocate \ start buffer
-
+4096 chars allocate 
 
 begin 
     execute-token
