@@ -3,6 +3,8 @@
 3 constant typeno_block
 4 constant typeno_array
 
+Defer golf-preprocess ( caddr u -- xt )
+
 ( Nur ein Level atm )
 create slice_start 0 ,
 
@@ -51,8 +53,8 @@ create slice_start 0 ,
 : anon_str { addr u -- typext }
     :noname  addr POSTPONE LITERAL u POSTPONE LITERAL POSTPONE typeno_str POSTPONE ; ;
 
-: anon_block { addr u -- typext }
-    :noname  addr POSTPONE LITERAL u POSTPONE LITERAL POSTPONE typeno_block POSTPONE ; ;
+: anon_block { xt -- typext }
+    :noname  xt POSTPONE LITERAL POSTPONE typeno_block POSTPONE ; ;
 
 \ -----------------------------
 \ - Projektionen
@@ -61,7 +63,7 @@ create slice_start 0 ,
     execute dup  CASE
         typeno_int OF nip ENDOF
         typeno_str OF nip nip ENDOF
-        typeno_block OF nip nip ENDOF
+        typeno_block OF nip ENDOF
         typeno_array OF nip nip ENDOF
     ENDCASE ;
 
@@ -73,7 +75,7 @@ create slice_start 0 ,
     CASE
         typeno_int OF . ENDOF
         typeno_str OF type ENDOF
-        typeno_block OF type ENDOF
+        typeno_block OF . ENDOF
         typeno_array OF . . ENDOF
     ENDCASE ;
 
@@ -83,7 +85,8 @@ create slice_start 0 ,
 \ - Golfscript ~ Operator
 \ ----------------------------
 : golf_sim_str ( tstr -- )
-    drop ( eval stuff ) ;
+    val golf-preprocess execute
+;
 
 : golf_sim_int ( tu -- typedxt )
     val invert anon_int ;
@@ -93,11 +96,16 @@ create slice_start 0 ,
         dup i cells + @ tuck drop
     loop drop ;
 
+: golf_sim_block ( block -- )
+    val execute
+;
+
 : golf_sim ( typed -- ... )
+
     dup golf_type CASE
         typeno_int OF golf_sim_int ENDOF
         typeno_str OF  golf_sim_str ENDOF
-        typeno_block OF golf_sim_str ENDOF
+        typeno_block OF golf_sim_block ENDOF
         typeno_array OF golf_sim_array ENDOF
     ENDCASE ;
 
@@ -112,20 +120,66 @@ create slice_start 0 ,
     golf_slice_start
     ty1 golf_sim ty2 golf_sim anon_array ;
 
+: golf_+_str { ty1 ty2 -- tyo }
+    ty1 val ty2 val 
+    str-append anon_str
+;
+
+: golf_+_block { ty1 ty2 -- tyo }
+    ty1 val ty2 val 
+    composition anon_block
+;
+
 : golf_+ ( ty1 ty2 -- tyo )
     dup golf_type CASE
         typeno_int OF golf_+_int ENDOF
         typeno_array OF golf_+_array ENDOF
+        typeno_str OF golf_+_str ENDOF
+        typeno_block OF golf_+_block ENDOF
     ENDCASE ;
 
+\ --------------------------------
+\ - Golfscipt - Operator
+\ -------------------------------
+: golf_-_int { ty1 ty2 -- tyo }
+    ty1 val ty2 val - anon_int ;
+
+: golf_- ( ty1 ty2 -- tyo )
+    dup golf_type CASE
+        typeno_int OF golf_-_int ENDOF
+    ENDCASE ;
+
+\ --------------------------------
+\ - Golfscipt % Operator
+\ -------------------------------
+: golf_%_int { ty1 ty2 -- tyo }
+    ty1 val ty2 val mod anon_int ;
+
+: golf_% ( ty1 ty2 -- tyo )
+    dup golf_type CASE
+        typeno_int OF golf_%_int ENDOF
+    ENDCASE ;
+
+
+
+\ -----------------------------
+\ - Golfscript simple operators
+\ ----------------------------
+: golf_.  dup ;
+: golf_;  drop ;
+: golf_backslash  swap ;
+: golf_@  rot ;
 
 \ ------------------------
 \ - Golfscript do
 \ ------------------------
-: golf_do { tyblock -- .. }
+ : golf_do { tyblock -- .. }
     BEGIN
         tyblock golf_sim
-    UNTIL ;
+        val
+    WHILE 
+    REPEAT 
+;
 
 \ ------------------------
 \ - Triviale operatoren

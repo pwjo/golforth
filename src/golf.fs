@@ -1,6 +1,7 @@
 
-s" golf_preprocess.fs" included
+s" stdlib.fs" included
 s" golf_lang.fs" included
+s" golf_preprocess.fs" included
 
 : get-filename
 next-arg dup 0= if
@@ -11,7 +12,7 @@ then
 
 : dump_stack
 depth 0 +do 
-    val_dump
+    val_dump cr
 LOOP
 ;
 
@@ -19,10 +20,9 @@ get-filename slurp-file
 
 golf-preprocess
 
-cr 2dup type cr
 
 get-order golf-wordlist swap 1+ set-order
-evaluate
+execute
 
 cr s" stack:" type .s cr
 
