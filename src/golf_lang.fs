@@ -5,8 +5,11 @@
 
 Defer golf-preprocess ( caddr u -- xt )
 
-( Nur ein Level atm )
-create slice_start 0 ,
+20 constant max_array_depth
+
+create slice_start max_array_depth cells allot
+create slice_start_idx 0 ,
+
 
 \ -----------------------------
 \ - Projektionen
@@ -56,19 +59,41 @@ create slice_start 0 ,
 \ -----------------------
 \ - Array zeug
 \ ------------------------
+
+: current_slice_start ( -- addr )
+    slice_start slice_start_idx @ cells + ;
+: active_slice_start ( -- addr )
+    slice_start slice_start_idx @ 1- cells + ; ( XXX error handling if <0 )
+: inc_slice_start_idx ( -- )
+    slice_start_idx dup @ 1+ swap ! ;
+: dec_slice_start_idx ( -- )
+    slice_start_idx dup @ 1- swap ! ;
+
 : golf_slice_start ( -- )
-    depth slice_start ! ;
+    slice_start_idx @ max_array_depth < if
+        depth current_slice_start !
+        inc_slice_start_idx
+    else
+        abort
+    endif ;
 
 : make_array_xt { addr n -- }
     :noname addr POSTPONE LITERAL n POSTPONE LITERAL POSTPONE typeno_array POSTPONE ; ;
 
 : anon_array
-    depth slice_start @ - dup >r
+    depth active_slice_start @ - dup >r
     dup cells dup  allocate drop
     + swap 0 u+do
         cell - tuck !
     loop r>
-    make_array_xt ;
+    make_array_xt dec_slice_start_idx ;
+
+
+: golf_array_nth ( arr n -- arr[n] )
+    swap val drop swap cells + @ ;
+
+: golf_array_len ( arr -- len )
+    val nip ;
 
 \ ------------------------
 \ - Anonyme konstruktoren
