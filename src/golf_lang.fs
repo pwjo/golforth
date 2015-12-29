@@ -188,6 +188,27 @@ create slice_start_idx 0 ,
     ENDCASE ;
 
 
+\ --------------------------------
+\ - Golfscript ) Operator
+\ --------------------------------
+\ increment number
+: golf_)_int ( tyn -- tyn+1 )
+    val 1+ anon_int ;
+
+\ XXX missing handling of special cases (array size 0 or 1)
+: golf_)_array ( array -- front last )
+    golf_slice_start
+    dup val 1- 0 u+do
+        dup i cells + @ swap
+    loop drop
+    anon_array swap
+    val 1- cells + @ ;
+
+: golf_)
+     dup golf_type CASE
+         typeno_int OF golf_)_int ENDOF
+         typeno_array OF golf_)_array ENDOF
+     ENDCASE ;
 
 \ -----------------------------
 \ - Golfscript simple operators
