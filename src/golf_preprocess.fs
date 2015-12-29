@@ -28,7 +28,13 @@ s" @" , , ' golf_@ ,
 
 s" do" , , ' golf_do ,
 
+s" [" , , ' golf_slice_start ,
+s" ]" , , ' anon_array ,
+
+
 \ incomplete
+s" )" , , ' golf_) ,
+
 s" +" , , ' golf_+ ,
 s" -" , , ' golf_- ,
 s" %" , , ' golf_% ,
@@ -55,30 +61,6 @@ s" %" , , ' golf_% ,
     3 cells +LOOP 
 
     invert IF 0 THEN
-;
-
-
-: create_str_func { addr u -- xt } 
-    
-    u allocate throw { addr1 }
-    addr addr1 u move
-
-    :noname addr1 POSTPONE literal u POSTPONE literal POSTPONE anon_str POSTPONE ; 
-;
-
-: create_int_func { n -- xt } 
-
-    :noname n POSTPONE literal POSTPONE anon_int POSTPONE ; 
-;
-
-: create_store_func { addr -- xt }
-
-    :noname POSTPONE dup addr POSTPONE literal POSTPONE ! POSTPONE ;
-;
-
-: create_load_func { addr -- xt }
-
-    :noname addr POSTPONE literal POSTPONE @ POSTPONE ;
 ;
 
 
@@ -266,7 +248,6 @@ Defer execute-token ( caddr u xt -- caddr1 u1 xt1 flag )
         \ special case: block start '{' 
         \ 
         ['] execute-block-start OF
-            s" block start" type
             2drop  xt 
             collect-block-token -1
         ENDOF

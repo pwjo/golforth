@@ -1,7 +1,7 @@
 1 constant typeno_int
-2 constant typeno_str
-3 constant typeno_block
-4 constant typeno_array
+2 constant typeno_array
+3 constant typeno_str
+4 constant typeno_block
 
 Defer golf-preprocess ( caddr u -- xt )
 
@@ -28,15 +28,15 @@ create slice_start_idx 0 ,
 : val_dump ( xt -- )
     execute
     CASE
-        typeno_int OF . ENDOF
+        typeno_int OF int_to_string type ENDOF \ dot makes space
         typeno_str OF type ENDOF
         typeno_block OF . ENDOF
-        typeno_array OF
+        typeno_array OF s" [" type
             0 u+do dup i cells + @ recurse loop
             drop
+            s" ]" type
         ENDOF
     ENDCASE ;
-
 
 \ -------------------------
 \ - Named konstruktoren
@@ -55,6 +55,48 @@ create slice_start_idx 0 ,
     create swap , , typeno_block ,
   does>
     dup @ swap cell+ dup @ swap cell+ @ ;
+
+\ ------------------------
+\ - Anonyme konstruktoren
+\ ------------------------
+: anon_int { u -- typext }
+    :noname  u POSTPONE LITERAL POSTPONE typeno_int  POSTPONE ; ;
+
+: anon_str { addr u -- typext }
+    :noname  addr POSTPONE LITERAL u POSTPONE LITERAL POSTPONE typeno_str POSTPONE ; ;
+
+: anon_block { xt -- typext }
+    :noname  xt POSTPONE LITERAL POSTPONE typeno_block POSTPONE ; ;
+
+
+
+\ -------------------------
+\ - block functions
+\ -------------------------
+
+: create_str_func { addr u -- xt } 
+    
+    u allocate throw { addr1 }
+    addr addr1 u move
+
+    :noname addr1 POSTPONE literal u POSTPONE literal POSTPONE anon_str POSTPONE ; 
+;
+
+: create_int_func { n -- xt } 
+
+    :noname n POSTPONE literal POSTPONE anon_int POSTPONE ; 
+;
+
+: create_store_func { addr -- xt }
+
+    :noname POSTPONE dup addr POSTPONE literal POSTPONE ! POSTPONE ;
+;
+
+: create_load_func { addr -- xt }
+
+    :noname addr POSTPONE literal POSTPONE @ POSTPONE ;
+;
+
 
 \ -----------------------
 \ - Array zeug
@@ -95,18 +137,108 @@ create slice_start_idx 0 ,
 : golf_array_len ( arr -- len )
     val nip ;
 
-\ ------------------------
-\ - Anonyme konstruktoren
-\ ------------------------
-: anon_int { u -- typext }
-    :noname  u POSTPONE LITERAL POSTPONE typeno_int  POSTPONE ; ;
 
-: anon_str { addr u -- typext }
-    :noname  addr POSTPONE LITERAL u POSTPONE LITERAL POSTPONE typeno_str POSTPONE ; ;
+\ -------------------------
+\ - type coercion
+\ -------------------------
 
-: anon_block { xt -- typext }
-    :noname  xt POSTPONE LITERAL POSTPONE typeno_block POSTPONE ; ;
+: coerce_int_to_array ( typed-int -- typed-array )
 
+    val
+    1 allocate throw dup -rot !
+    1 make_array_xt 
+;
+
+: coerce_int_to_string ( typed-int -- typed-str )
+
+    val int_to_string  
+    str_to_heap anon_str
+;
+
+: coerce_int_to_block ( typed-int -- typed-block )
+    val
+    create_int_func anon_block
+;
+
+: coerce_int_to ( typed typedid -- typed )
+
+    CASE
+
+        typeno_int OF  ENDOF
+        typeno_array OF coerce_int_to_array ENDOF
+        typeno_str OF  coerce_int_to_string ENDOF
+        typeno_block OF coerce_int_to_block ENDOF
+
+    ENDCASE 
+;
+
+: coerce_array_to ( typed typedid -- typed )
+
+    CASE
+
+        typeno_int OF 1 throw ENDOF
+        typeno_array OF ENDOF
+        typeno_str OF 1 throw  ENDOF
+        typeno_block OF 1 throw ENDOF
+
+    ENDCASE 
+;
+
+: coerce_str_to ( typed typedid -- typed )
+
+    CASE
+
+        typeno_int OF 1 throw ENDOF
+        typeno_array OF 1 throw ENDOF
+        typeno_str OF   ENDOF
+        typeno_block OF 1 throw ENDOF
+
+    ENDCASE 
+;
+
+: coerce_block_to ( typed typedid -- typed )
+
+    CASE
+
+        typeno_int OF 1 throw ENDOF
+        typeno_array OF 1 throw ENDOF
+        typeno_str OF  1 throw  ENDOF
+        typeno_block OF ENDOF
+
+    ENDCASE 
+;
+
+
+: coerce_to (  typed typedid -- )
+    over golf_type CASE
+        typeno_int OF coerce_int_to ENDOF
+        typeno_array OF coerce_array_to throw ENDOF
+        typeno_str OF coerce_str_to ENDOF
+        typeno_block OF coerce_block_to ENDOF
+    ENDCASE 
+;
+
+
+\ -------------------------
+\ - type coercion helpers
+\ -------------------------
+: 2op_max_type ( ty1 ty2 -- max-type-id)
+
+    golf_type swap golf_type
+    2dup < if
+        nip
+    else
+        drop
+    then
+;
+
+: 2op_coerce_to_max ( ty1 ty2 -- ty3 ty4 max-type )
+    swap 2dup 2op_max_type { maxt } 
+    maxt coerce_to 
+    swap
+    maxt coerce_to
+    maxt
+;
 
 \ -----------------------------
 \ - Golfscript ~ Operator
@@ -158,12 +290,14 @@ create slice_start_idx 0 ,
 ;
 
 : golf_+ ( ty1 ty2 -- tyo )
-    dup golf_type CASE
+
+    2op_coerce_to_max CASE
         typeno_int OF golf_+_int ENDOF
         typeno_array OF golf_+_array ENDOF
         typeno_str OF golf_+_str ENDOF
         typeno_block OF golf_+_block ENDOF
-    ENDCASE ;
+    ENDCASE 
+;
 
 \ --------------------------------
 \ - Golfscipt - Operator

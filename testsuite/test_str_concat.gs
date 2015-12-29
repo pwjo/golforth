@@ -1,1 +1,3 @@
 'esel' '-' 'hund' + 
+-hund
+esel

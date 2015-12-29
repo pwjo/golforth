@@ -1,0 +1,113 @@
+#!/usr/bin/perl
+#
+
+use IPC::Open2;
+
+use strict;
+
+my $FH;
+my $WHITESPACE_REGEXP= '^\s*(#.*)?$';
+
+my $GOLF_SHELL_IN;
+my $GOLF_SHELL_OUT;
+my $GOLF_SHELL_COMMAND= 'gforth golf-shell.fs 2>/dev/null';
+
+
+
+foreach( glob '../testsuite/*gs' )
+{
+    print "$_\n";
+
+    open $FH, $_ or die "unable to open file: $!";
+
+    while(&process_input_output) { };
+
+    close $FH;
+}
+
+
+sub process_input_output
+{
+    my $input= &next_none_empty;
+    chomp $input;
+
+    return unless $input;
+
+    my $output= &lines_until_empty;
+
+    die "found no output lines for input: $input" unless $output;
+
+
+    &open_golf_shell;
+    print $GOLF_SHELL_IN "$input\n";
+    close $GOLF_SHELL_IN ;
+
+    &shell_until_prompt;
+    my $golf_return= &shell_until_prompt;
+
+    die "no golfscript output for input: $input" unless $golf_return;
+
+    my $golf_output= join ',', @$golf_return;
+    my $file_output= join ',', @$output;
+    
+    if( $golf_output ne $file_output )
+    {
+        print STDERR "got: '$golf_output'\n";
+        print STDERR "expected '$file_output'\n";
+        die "died becuase of testerror for input: $input\n";
+    }
+
+    print "$input -> $golf_output OK\n"
+}
+
+
+sub next_none_empty
+{
+    while( my $line = <$FH> )
+    {
+        return $line if( not $line =~ /$WHITESPACE_REGEXP/ )
+    }
+
+    return undef;
+}
+
+sub lines_until_empty
+{
+    my @lines= ();
+    while( my $line = <$FH> )
+    {
+        if( $line =~ /$WHITESPACE_REGEXP/ )
+        {
+            return undef if( scalar (@lines )== 0 );
+            return \@lines;
+        }
+        chomp $line;
+        push @lines, $line;
+    }
+
+    return undef if( scalar( @lines ) == 0 );
+    return \@lines;
+}
+
+sub open_golf_shell
+{
+    open2($GOLF_SHELL_OUT, $GOLF_SHELL_IN, $GOLF_SHELL_COMMAND )or die "unable to open golf shell: $!";
+}
+
+sub shell_until_prompt
+{
+    my @lines= ();
+    while( my $line = <$GOLF_SHELL_OUT> )
+    {
+        if( $line =~ /^golf\$/ )
+        {
+            return undef if( scalar (@lines )== 0 );
+            return \@lines;
+        }
+        chomp $line;
+        
+        push @lines, $line;
+    }
+    return undef if( scalar( @lines ) == 0 );
+    return \@lines;
+}

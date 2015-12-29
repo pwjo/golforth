@@ -7,6 +7,15 @@
 ;
 
 
+: str_to_heap { addr u -- addr1 u }
+
+    u allocate throw { addr1 }
+    addr addr1 u move
+
+    addr1 u
+;
+
+
 : composition  { xt1 xt2 -- xt3 }
 
     :noname xt1 POSTPONE LITERAL POSTPONE execute xt2 POSTPONE LITERAL POSTPONE execute POSTPONE ;
@@ -14,3 +23,17 @@
 ;
 
 
+: int_to_string ( d -- addr u )
+
+    BASE @ >r
+
+    dup >r \ keep for sign
+    abs
+    DECIMAL 0
+    <# 
+    #S 
+    r> SIGN
+    #>
+
+    r> BASE !
+;
