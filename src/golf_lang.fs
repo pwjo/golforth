@@ -8,6 +8,32 @@ Defer golf-preprocess ( caddr u -- xt )
 ( Nur ein Level atm )
 create slice_start 0 ,
 
+\ -----------------------------
+\ - Projektionen
+\ -----------------------------
+: golf_type ( ty -- t )
+    execute dup  CASE
+        typeno_int OF nip ENDOF
+        typeno_str OF nip nip ENDOF
+        typeno_block OF nip ENDOF
+        typeno_array OF nip nip ENDOF
+    ENDCASE ;
+
+: val ( xt -- x )
+    execute drop ;
+
+: val_dump ( xt -- )
+    execute
+    CASE
+        typeno_int OF . ENDOF
+        typeno_str OF type ENDOF
+        typeno_block OF . ENDOF
+        typeno_array OF
+            0 u+do dup i cells + @ recurse loop
+            drop
+        ENDOF
+    ENDCASE ;
+
 
 \ -------------------------
 \ - Named konstruktoren
@@ -55,30 +81,6 @@ create slice_start 0 ,
 
 : anon_block { xt -- typext }
     :noname  xt POSTPONE LITERAL POSTPONE typeno_block POSTPONE ; ;
-
-\ -----------------------------
-\ - Projektionen
-\ -----------------------------
-: golf_type ( ty -- t )
-    execute dup  CASE
-        typeno_int OF nip ENDOF
-        typeno_str OF nip nip ENDOF
-        typeno_block OF nip ENDOF
-        typeno_array OF nip nip ENDOF
-    ENDCASE ;
-
-: val ( xt -- x )
-    execute drop ;
-
-: val_dump ( xt -- )    
-    execute 
-    CASE
-        typeno_int OF . ENDOF
-        typeno_str OF type ENDOF
-        typeno_block OF . ENDOF
-        typeno_array OF . . ENDOF
-    ENDCASE ;
-
 
 
 \ -----------------------------
