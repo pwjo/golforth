@@ -144,8 +144,8 @@ s" %" , , ' golf_% ,
 
 create token-rules
 rgx-variable-string , 0 , ' execute-op-or-var , \ variable - string variant
-rgx-string-single   , 1 , ' execute-string ,    \ string - single quotes
-rgx-string-double   , 1 , ' execute-string ,    \ string - double quotes
+rgx-string-single   , 0 , ' execute-string ,    \ string - single quotes
+rgx-string-double   , 0 , ' execute-string ,    \ string - double quotes
 rgx-integer         , 0 , ' execute-integer ,   \ integer
 rgx-comment         , 0 , ' execute-comment ,   \ comment
 rgx-store           , 0 , ' execute-store ,     \ : store variables 

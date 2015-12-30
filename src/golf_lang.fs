@@ -76,10 +76,11 @@ create slice_start_idx 0 ,
 
 : create_str_func { addr u -- xt } 
     
-    u allocate throw { addr1 }
-    addr addr1 u move
+    \ cut the quotes and copy
+    u 2 chars - allocate throw { addr1 }
+    addr 1 chars + addr1 u 2 chars - move
 
-    :noname addr1 POSTPONE literal u POSTPONE literal POSTPONE anon_str POSTPONE ; 
+    :noname addr1 POSTPONE literal u 2 - POSTPONE literal POSTPONE anon_str POSTPONE ; 
 ;
 
 : create_int_func { n -- xt } 
@@ -138,108 +139,6 @@ create slice_start_idx 0 ,
     val nip ;
 
 
-\ -------------------------
-\ - type coercion
-\ -------------------------
-
-: coerce_int_to_array ( typed-int -- typed-array )
-
-    val
-    1 allocate throw dup -rot !
-    1 make_array_xt 
-;
-
-: coerce_int_to_string ( typed-int -- typed-str )
-
-    val int_to_string  
-    str_to_heap anon_str
-;
-
-: coerce_int_to_block ( typed-int -- typed-block )
-    val
-    create_int_func anon_block
-;
-
-: coerce_int_to ( typed typedid -- typed )
-
-    CASE
-
-        typeno_int OF  ENDOF
-        typeno_array OF coerce_int_to_array ENDOF
-        typeno_str OF  coerce_int_to_string ENDOF
-        typeno_block OF coerce_int_to_block ENDOF
-
-    ENDCASE 
-;
-
-: coerce_array_to ( typed typedid -- typed )
-
-    CASE
-
-        typeno_int OF 1 throw ENDOF
-        typeno_array OF ENDOF
-        typeno_str OF 1 throw  ENDOF
-        typeno_block OF 1 throw ENDOF
-
-    ENDCASE 
-;
-
-: coerce_str_to ( typed typedid -- typed )
-
-    CASE
-
-        typeno_int OF 1 throw ENDOF
-        typeno_array OF 1 throw ENDOF
-        typeno_str OF   ENDOF
-        typeno_block OF 1 throw ENDOF
-
-    ENDCASE 
-;
-
-: coerce_block_to ( typed typedid -- typed )
-
-    CASE
-
-        typeno_int OF 1 throw ENDOF
-        typeno_array OF 1 throw ENDOF
-        typeno_str OF  1 throw  ENDOF
-        typeno_block OF ENDOF
-
-    ENDCASE 
-;
-
-
-: coerce_to (  typed typedid -- )
-    over golf_type CASE
-        typeno_int OF coerce_int_to ENDOF
-        typeno_array OF coerce_array_to throw ENDOF
-        typeno_str OF coerce_str_to ENDOF
-        typeno_block OF coerce_block_to ENDOF
-    ENDCASE 
-;
-
-
-\ -------------------------
-\ - type coercion helpers
-\ -------------------------
-: 2op_max_type ( ty1 ty2 -- max-type-id)
-
-    golf_type swap golf_type
-    2dup < if
-        nip
-    else
-        drop
-    then
-;
-
-: 2op_coerce_to_max ( ty1 ty2 -- ty3 ty4 max-type )
-    swap 2dup 2op_max_type { maxt } 
-    maxt coerce_to 
-    swap
-    maxt coerce_to
-    maxt
-;
-
 \ -----------------------------
 \ - Golfscript ~ Operator
 \ ----------------------------
@@ -267,6 +166,43 @@ create slice_start_idx 0 ,
         typeno_block OF golf_sim_block ENDOF
         typeno_array OF golf_sim_array ENDOF
     ENDCASE ;
+
+
+
+\ ------------------------------
+\ array/string iteration words
+\ ------------------------------
+: golf_foldr { arr xt -- varies } arr golf_sim arr golf_array_len 1 u+do xt execute loop ;
+: golf_foldl { arr xt -- varies } arr 0 golf_array_nth arr golf_array_len 1 u+do arr i golf_array_nth xt execute loop ; 
+
+: golf_each { arr xt -- varies } arr golf_array_len 0 u+do arr i golf_array_nth xt execute loop ; 
+: golf_each_reverse { arr xt -- varies } arr golf_sim arr golf_array_len 0 u+do xt execute loop ;
+
+: golf_iterate { arr xt -- varies } arr golf_array_len 0 u+do arr i golf_array_nth i xt execute loop ; 
+: golf_iterate_reverse { arr xt -- varies } arr golf_sim arr golf_array_len 0 u+do i xt execute loop ;
+
+
+: create_array_transform_store_func { store-addr transform-xt -- }
+
+  :noname POSTPONE swap transform-xt POSTPONE literal POSTPONE execute POSTPONE swap \ transform
+          store-addr POSTPONE literal POSTPONE swap POSTPONE cells POSTPONE +  \ target address
+          POSTPONE ! POSTPONE ; \ store
+;
+
+: golf_map { arr xt -- varies } 
+
+    arr golf_array_len { n } n allocate throw  { store-arr } 
+
+    store-arr xt create_array_transform_store_func { store-xt }
+    arr store-xt golf_iterate
+    store-arr n make_array_xt
+;
+
+\ test:
+\ golf_slice_start 65 anon_int 68 anon_int anon_array ' coerce_int_to_string_raw golf_map val_dump
+
+s" golf_coercion.fs" included
+
 
 
 \ --------------------------------
@@ -345,16 +281,17 @@ create slice_start_idx 0 ,
      ENDCASE ;
 
 \ -----------------------------
-\ - Golfscript simple operators
+\ - Golfscript stack operators
 \ ----------------------------
 : golf_.  dup ;
 : golf_;  drop ;
 : golf_backslash  swap ;
 : golf_@  rot ;
 
-\ ------------------------
-\ - Golfscript do
-\ ------------------------
+
+\ --------------------------------
+\ - Golfscript loop constructs
+\ --------------------------------
  : golf_do { tyblock -- .. }
     BEGIN
         tyblock golf_sim
@@ -362,14 +299,6 @@ create slice_start_idx 0 ,
     WHILE 
     REPEAT 
 ;
-
-\ ------------------------
-\ - Triviale operatoren
-\ --------------------------
-: golf_@ rot ;
-: golf_; drop ;
-: golf_. dup ;
-: golf_\ swap ;
 
 
 \ ----------------------------
