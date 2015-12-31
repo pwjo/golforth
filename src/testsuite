@@ -10,11 +10,15 @@ my $WHITESPACE_REGEXP= '^\s*(#.*)?$';
 
 my $GOLF_SHELL_IN;
 my $GOLF_SHELL_OUT;
-my $GOLF_SHELL_COMMAND= 'gforth golf-shell.fs 2>/dev/null';
+my $GOLF_SHELL_COMMAND= 'gforth golf_shell.fs 2>/dev/null';
+my $GOLF_SHELL_REGEXP= '^golf\\$';
 
+my $TESTCOUNT=0;
 
+my @files=glob '../testsuite/*gs';
+@files= @ARGV if( @ARGV );
 
-foreach( glob '../testsuite/*gs' )
+foreach( @files )
 {
     print "$_\n";
 
@@ -25,6 +29,7 @@ foreach( glob '../testsuite/*gs' )
     close $FH;
 }
 
+print "\n$TESTCOUNT testcases OK\n";
 
 sub process_input_output
 {
@@ -33,7 +38,7 @@ sub process_input_output
 
     return unless $input;
 
-    my $output= &lines_until_empty;
+    my $output= &lines_until_expr($FH,$WHITESPACE_REGEXP);
 
     die "found no output lines for input: $input" unless $output;
 
@@ -42,8 +47,9 @@ sub process_input_output
     print $GOLF_SHELL_IN "$input\n";
     close $GOLF_SHELL_IN ;
 
-    &shell_until_prompt;
-    my $golf_return= &shell_until_prompt;
+    &lines_until_expr($GOLF_SHELL_OUT, $GOLF_SHELL_REGEXP);
+
+    my $golf_return= &lines_until_expr($GOLF_SHELL_OUT, $GOLF_SHELL_REGEXP);
 
     die "no golfscript output for input: $input" unless $golf_return;
 
@@ -57,7 +63,8 @@ sub process_input_output
         die "died becuase of testerror for input: $input\n";
     }
 
-    print "$input -> $golf_output OK\n"
+    print "$input -> $golf_output OK\n";
+    $TESTCOUNT++;
 }
 
 
@@ -71,12 +78,14 @@ sub next_none_empty
     return undef;
 }
 
-sub lines_until_empty
+sub lines_until_expr
 {
+    my($fh,$expr)= @_;
+
     my @lines= ();
-    while( my $line = <$FH> )
+    while( my $line = <$fh> )
     {
-        if( $line =~ /$WHITESPACE_REGEXP/ )
+        if( $line =~ /$expr/ )
         {
             return undef if( scalar (@lines )== 0 );
             return \@lines;
@@ -88,26 +97,9 @@ sub lines_until_empty
     return undef if( scalar( @lines ) == 0 );
     return \@lines;
 }
+
 
 sub open_golf_shell
 {
     open2($GOLF_SHELL_OUT, $GOLF_SHELL_IN, $GOLF_SHELL_COMMAND )or die "unable to open golf shell: $!";
-}
-
-sub shell_until_prompt
-{
-    my @lines= ();
-    while( my $line = <$GOLF_SHELL_OUT> )
-    {
-        if( $line =~ /^golf\$/ )
-        {
-            return undef if( scalar (@lines )== 0 );
-            return \@lines;
-        }
-        chomp $line;
-        
-        push @lines, $line;
-    }
-    return undef if( scalar( @lines ) == 0 );
-    return \@lines;
 }

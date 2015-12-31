@@ -182,26 +182,70 @@ create slice_start_idx 0 ,
 : golf_iterate_reverse { arr xt -- varies } arr golf_sim arr golf_array_len 0 u+do i xt execute loop ;
 
 
-: create_array_transform_store_func { store-addr transform-xt -- }
+
+: create_array_transform_store_func { store-addr transform-xt increment-xt -- }
 
   :noname POSTPONE swap transform-xt POSTPONE literal POSTPONE execute POSTPONE swap \ transform
-          store-addr POSTPONE literal POSTPONE swap POSTPONE cells POSTPONE +  \ target address
+          store-addr POSTPONE literal POSTPONE swap 
+          increment-xt POSTPONE literal POSTPONE execute POSTPONE +  \ target address
           POSTPONE ! POSTPONE ; \ store
 ;
 
-: golf_map { arr xt -- varies } 
+: golf_map_raw { arr xt increment-xt -- varies } 
 
     arr golf_array_len { n } n allocate throw  { store-arr } 
 
-    store-arr xt create_array_transform_store_func { store-xt }
+    store-arr xt increment-xt create_array_transform_store_func { store-xt }
     arr store-xt golf_iterate
-    store-arr n make_array_xt
+    store-arr n 
 ;
 
-\ test:
-\ golf_slice_start 65 anon_int 68 anon_int anon_array ' coerce_int_to_string_raw golf_map val_dump
+: golf_map_to_array ( arr xt -- varies ) 
 
-s" golf_coercion.fs" included
+    ['] cells 
+    golf_map_raw
+    make_array_xt
+;
+
+: golf_map_to_string ( arr xt -- varies ) 
+
+    ['] chars 
+    golf_map_raw
+    anon_str
+;
+
+
+\ test:
+\ golf_slice_start 65 anon_int 68 anon_int anon_array ' coerce_int_to_string_raw golf_map_to_array val_dump
+\ golf_slice_start 65 anon_int 68 anon_int anon_array ' val golf_map_to_string val_dump
+
+
+
+\ -------------------------
+\ - type coercion helpers
+\ -------------------------
+Defer coerce_to  (  typed typedid -- typed )
+Defer coerce_rawcast_to  (  typed typedid -- typed )
+
+
+: 2op_max_type ( ty1 ty2 -- max-type-id)
+
+    golf_type swap golf_type
+    2dup < if
+        nip
+    else
+        drop
+    then
+;
+
+: 2op_coerce_to_max ( ty1 ty2 -- ty3 ty4 max-type )
+    swap 2dup 2op_max_type { maxt } 
+    maxt coerce_to 
+    swap
+    maxt coerce_to
+    maxt
+;
+
 
 
 
@@ -236,14 +280,100 @@ s" golf_coercion.fs" included
 ;
 
 \ --------------------------------
+\ - Golfscipt = Operator
+\ -------------------------------
+
+\ *_equal implements the raw = functionality between
+\ two values of the same type
+
+: golf_equal_int ( ty1 ty2 -- flag )
+    val swap val =
+;
+
+Defer golf_equal
+
+: golf_equal_array ( ty1 ty2 -- flag )
+
+    2dup golf_array_len
+    swap golf_array_len
+
+    <> if 2drop 0 EXIT then
+
+    val { addr1 len }
+    val drop { addr2 }
+    
+    len 0 u+do
+        addr1 i cells + @  
+        addr2 i cells + @  
+
+        golf_equal invert if
+            0 UNLOOP EXIT
+        then
+    loop
+ 
+    -1
+;
+
+: golf_equal_str ( ty1 ty2 -- flag )
+    val rot val
+    compare
+    0= if
+    -1
+    else 
+        0
+    then
+;
+
+
+: golf_equal_impl ( ty1 ty2 - flag )
+
+    \ different types means we are not equal
+    2dup golf_type 
+    swap golf_type 
+    <> if 0 EXIT then
+
+    dup golf_type
+    CASE
+        typeno_int OF golf_equal_int ENDOF
+        typeno_array OF golf_equal_array ENDOF
+        typeno_str OF golf_equal_str ENDOF
+        typeno_block OF 1 throw ENDOF
+    ENDCASE 
+
+;
+
+' golf_equal_impl IS golf_equal
+
+: golf_=
+
+    \ TODO: implement the index functionality for different
+    \       types
+    golf_equal 
+    if
+        1 anon_int
+    else
+        0 anon_int
+    then 
+;
+
+\ --------------------------------
 \ - Golfscipt - Operator
 \ -------------------------------
 : golf_-_int { ty1 ty2 -- tyo }
-    ty1 val ty2 val - anon_int ;
+    ty1 val ty2 val - anon_int 
+;
+
+: golf_-_array { ty1 ty2 -- tyo }
+    1 throw \ TODO
+;
+
 
 : golf_- ( ty1 ty2 -- tyo )
-    dup golf_type CASE
+    2op_coerce_to_max CASE
         typeno_int OF golf_-_int ENDOF
+        typeno_array OF golf_-_array ENDOF
+        typeno_str OF 1 throw ENDOF
+        typeno_block OF 1 throw ENDOF
     ENDCASE ;
 
 \ --------------------------------
@@ -300,6 +430,7 @@ s" golf_coercion.fs" included
     REPEAT 
 ;
 
+s" golf_coercion.fs" included
 
 \ ----------------------------
 \ - Zeug

@@ -35,6 +35,8 @@ s" ]" , , ' anon_array ,
 \ incomplete
 s" )" , , ' golf_) ,
 
+s" =" , , ' golf_= ,
+
 s" +" , , ' golf_+ ,
 s" -" , , ' golf_- ,
 s" %" , , ' golf_% ,

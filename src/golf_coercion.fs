@@ -15,18 +15,33 @@
 ;
 
 
-\ just the integer value as char
-: coerce_int_to_string_raw ( typed-int -- typed-str )
+\ just the integer value as char in a golf string
+: coerce_rawcast_int_to_string ( typed-int -- typed-str )
 
     val 1 allocate throw dup -rot c! 1
     anon_str
 ;
+
+
 
 : coerce_int_to_block ( typed-int -- typed-block )
     val
     create_int_func anon_block
 ;
 
+
+
+: coerce_rawcast_int_to ( typed typedid -- typed )
+
+    CASE
+
+        typeno_int OF  ENDOF
+        typeno_array OF coerce_int_to_array ENDOF
+        typeno_str OF  coerce_rawcast_int_to_string ENDOF
+        typeno_block OF coerce_int_to_block ENDOF
+
+    ENDCASE 
+;
 : coerce_int_to ( typed typedid -- typed )
 
     CASE
@@ -46,15 +61,21 @@
 \ -------------------------
 
 : coerce_array_to_str ( typed-array -- typed )
-    \ TODO: use fold for that
-    \       convert each element to a string and concatenate them (golf_+)
-    1 throw
+
+    :noname typeno_str POSTPONE literal POSTPONE coerce_rawcast_to POSTPONE ;
+
+    golf_map_to_array
+
+    ['] golf_+ golf_foldr
 ;
 
 : coerce_array_to_block ( typed-array -- typed-block )
-    \ TODO: use fold for that
-    \       convert each element to a block and make a composition (golf_+)
-    1 throw
+
+    :noname typeno_block POSTPONE literal POSTPONE coerce_to POSTPONE ;
+
+    golf_map_to_array
+
+    ['] golf_+ golf_foldr
 ;
 
 : coerce_array_to ( typed typedid -- typed )
@@ -113,7 +134,7 @@
 \ typed coercion
 \ -------------------------
 
-: coerce_to (  typed typedid -- typed )
+: coerce_to_impl (  typed typedid -- typed )
     over golf_type CASE
         typeno_int OF coerce_int_to ENDOF
         typeno_array OF coerce_array_to ENDOF
@@ -122,25 +143,16 @@
     ENDCASE 
 ;
 
-
-\ -------------------------
-\ - type coercion helpers
-\ -------------------------
-: 2op_max_type ( ty1 ty2 -- max-type-id)
-
-    golf_type swap golf_type
-    2dup < if
-        nip
-    else
-        drop
-    then
+: coerce_rawcast_to_impl (  typed typedid -- typed )
+    over golf_type CASE
+        typeno_int OF coerce_rawcast_int_to ENDOF
+        typeno_array OF coerce_array_to ENDOF
+        typeno_str OF coerce_str_to ENDOF
+        typeno_block OF coerce_block_to ENDOF
+    ENDCASE 
 ;
 
-: 2op_coerce_to_max ( ty1 ty2 -- ty3 ty4 max-type )
-    swap 2dup 2op_max_type { maxt } 
-    maxt coerce_to 
-    swap
-    maxt coerce_to
-    maxt
-;
+' coerce_to_impl IS coerce_to
+' coerce_rawcast_to_impl IS coerce_rawcast_to
+
 
