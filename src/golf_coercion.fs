@@ -94,6 +94,14 @@
 \ -------------------------
 \ string coercion
 \ -------------------------
+: coerce_str_to_array ( typed-string -- typed array )
+    val { addr len } golf_slice_start len 0 
+    u+do
+        addr i chars + c@ anon_int
+    loop 
+    anon_array
+;
+
 
 : coerce_str_to_block  ( typed-string -- typed-block )
     val golf-preprocess anon_block
@@ -104,7 +112,7 @@
     CASE
 
         typeno_int OF 1 throw ENDOF
-        typeno_array OF 1 throw ENDOF
+        typeno_array OF coerce_str_to_array ENDOF
         typeno_str OF   ENDOF
         typeno_block OF coerce_str_to_block ENDOF
 

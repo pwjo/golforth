@@ -449,16 +449,47 @@ Defer golf_equal
     ty1 val ty2 val - anon_int 
 ;
 
-: golf_-_array { ty1 ty2 -- tyo }
-    1 throw \ TODO
+
+: equal_arg_xt { typed -- xt }
+
+  :noname typed POSTPONE literal POSTPONE golf_equal POSTPONE or POSTPONE ;
 ;
 
+
+: golf_-_array { array filter-array -- tyo }
+
+\ 0 golf_slice_start 2 anon_int 4 anon_int anon_array 2 anon_int equal_arg_xt golf_each 
+    array golf_sim_array
+
+    \ we always hide the collecting array behind the last element of the stack
+    golf_slice_start anon_array
+    swap
+    array golf_array_len 0 u+do
+        dup equal_arg_xt
+        0 filter-array rot golf_each 
+        invert if swap golf_+ else drop then
+        \ again hide the collecting array
+        i array golf_array_len 1- < if swap then
+    loop
+
+;
+
+: golf_-_string ( string filter-string -- tyo )
+
+    typeno_array coerce_to
+    swap
+    typeno_array coerce_to
+    swap
+
+    golf_-_array
+    typeno_str coerce_to
+;
 
 : golf_- ( ty1 ty2 -- tyo )
     2op_coerce_to_max CASE
         typeno_int OF golf_-_int ENDOF
         typeno_array OF golf_-_array ENDOF
-        typeno_str OF 1 throw ENDOF
+        typeno_str OF golf_-_string ENDOF
         typeno_block OF 1 throw ENDOF
     ENDCASE ;
 
