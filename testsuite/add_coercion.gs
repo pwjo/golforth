@@ -68,9 +68,6 @@ Array
 [ 65 'dora'] 'esel' +
 Adoraesel
 
-# TODO: change of string interpretation ;)
-# [ 65 'dora'] 12 + " | ruby golfscript.rb 
-# 65dora12
 
 # array / block
 [ 30 20 ] {+} + ~

@@ -65,6 +65,7 @@ sub process_input_output
 
     print "$input -> $golf_output OK\n";
     $TESTCOUNT++;
+    1
 }
 
 
@@ -87,14 +88,14 @@ sub lines_until_expr
     {
         if( $line =~ /$expr/ )
         {
-            return undef if( scalar (@lines )== 0 );
+            #return undef if( scalar (@lines )== 0 );
             return \@lines;
         }
         chomp $line;
         push @lines, $line;
     }
 
-    return undef if( scalar( @lines ) == 0 );
+    #return undef if( scalar( @lines ) == 0 );
     return \@lines;
 }
 

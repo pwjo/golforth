@@ -231,11 +231,29 @@ Defer coerce_rawcast_to  (  typed typedid -- typed )
 : 2op_max_type ( ty1 ty2 -- max-type-id)
 
     golf_type swap golf_type
-    2dup < if
-        nip
-    else
-        drop
-    then
+    max
+;
+
+: 2op_min_type ( ty1 ty2 -- min-type-id)
+
+    golf_type swap golf_type
+    min
+;
+
+: 2op_same_type ( ty1 ty2 -- flag )
+
+    golf_type swap golf_type
+    = 
+;
+
+
+\ orders arguments ascending according to their type:
+\ int - array - string - block
+: 2op_type_order ( ty1 ty2 -- ty1 ty2 | ty2 ty1 )
+
+    2dup golf_type 
+    swap golf_type
+    < if swap then
 ;
 
 : 2op_coerce_to_max ( ty1 ty2 -- ty3 ty4 max-type )
@@ -307,6 +325,7 @@ Defer golf_equal
         addr2 i cells + @  
 
         golf_equal invert if
+
             0 UNLOOP EXIT
         then
     loop
@@ -327,34 +346,101 @@ Defer golf_equal
 
 : golf_equal_impl ( ty1 ty2 - flag )
 
-    \ different types means we are not equal
-    2dup golf_type 
-    swap golf_type 
-    <> if 0 EXIT then
+    2op_coerce_to_max 
 
-    dup golf_type
     CASE
         typeno_int OF golf_equal_int ENDOF
         typeno_array OF golf_equal_array ENDOF
         typeno_str OF golf_equal_str ENDOF
         typeno_block OF 1 throw ENDOF
     ENDCASE 
-
 ;
 
 ' golf_equal_impl IS golf_equal
 
-: golf_=
 
-    \ TODO: implement the index functionality for different
-    \       types
-    golf_equal 
-    if
-        1 anon_int
+
+\ returns false if index out of bounds,
+\ last index if index=-1
+: index_bounds_check ( array_len typed-index -- index -1 | 0 )  
+
+    val
+    
+    \ specal case -1 = array_len -1
+    dup -1 = if
+        drop 1-  
     else
-        0 anon_int
+        \ bigger then array, then we are empty
+        2dup <= if 2drop 0 EXIT then
+        nip
+    then
+
+    -1
+;
+
+
+\ see golf_index
+: golf_index_array ( typed-int typed-array -- ty )
+
+    dup golf_array_len rot 
+
+    index_bounds_check if
+        golf_array_nth 
+    else 
+        drop
+    then
+;
+
+
+\ see golf_index
+: golf_index_str ( typed-int typed-str -- typed-int )
+
+    dup val nip rot 
+
+    index_bounds_check if
+        swap val drop swap chars + c@  anon_int
+    else 
+        drop
+    then
+;
+ 
+\ one of the ops has to be an integer
+\ selects the element with the respective index
+\ nothing if index out of bounds
+: golf_index ( ty1 ty2 -- ty3 | <empty>)
+
+    2op_type_order 
+    dup golf_type 
+    CASE
+        typeno_array OF golf_index_array ENDOF
+        typeno_str OF golf_index_str ENDOF
+        typeno_block OF 1 throw ENDOF
+    ENDCASE 
+;
+
+
+: flag_to_golf_boolean ( flag -- typed-int )
+
+    if 1 anon_int 
+    else 0 anon_int 
     then 
 ;
+
+: golf_= { ty1 ty2 -- typed-int }
+
+    \ if not one of the args is an int we try coercion
+    ty1 ty2 2op_same_type
+    ty1 ty2 2op_min_type typeno_int >
+    or if
+        ty1 ty2 golf_equal 
+        flag_to_golf_boolean
+
+    \ index operation
+    else
+        ty1 ty2 golf_index
+    then
+;
+
 
 \ --------------------------------
 \ - Golfscipt - Operator
