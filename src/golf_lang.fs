@@ -527,6 +527,55 @@ Defer golf_equal
          typeno_array OF golf_)_array ENDOF
      ENDCASE ;
 
+\ -------------------------------
+\ - Golfscript ! Operator
+\ -------------------------------
+
+: golf_!_int ( int -- int )
+    val 0= IF 1 ELSE 0 ENDIF anon_int ;
+
+: golf_!_length ( array/string -- int )
+    val nip 0= IF 1 ELSE 0 ENDIF anon_int ;
+
+: golf_! ( varies - int )
+    dup golf_type CASE
+        typeno_int OF golf_!_int ENDOF
+        typeno_array OF golf_!_length ENDOF
+        typeno_str OF golf_!_length ENDOF
+        typeno_block OF 0 ENDOF ( Implement? )
+    ENDCASE ;
+
+
+\ --------------------------------
+\ - Golfscript ? Operator
+\ --------------------------------
+
+: golf_?_int { int1 int2 -- int1^int2 }
+    int1 val int2 val
+    1 swap 0 ?do over * loop nip anon_int ;
+
+: golf_?_array { int array -- idxint }
+    -1 array val 0 u+do
+        dup @ int golf_equal_int
+        IF nip i swap leave ELSE cell+ ENDIF
+    loop drop anon_int ;
+
+\ Vor dem if evtl anpassen
+: golf_?_block { array block -- ... }
+    array val nip  0 u+do
+        array i golf_array_nth
+        block golf_sim golf_! val 0= ( ! gives 0 on non-empty value )
+        IF array i golf_array_nth LEAVE ENDIF
+    loop ;
+
+: golf_? ( varies varies -- ... )
+    dup golf_type CASE
+        typeno_int OF golf_?_int ENDOF
+        typeno_array OF golf_?_array ENDOF
+        typeno_block OF golf_?_block ENDOF
+    ENDCASE ;
+
+
 \ -----------------------------
 \ - Golfscript stack operators
 \ ----------------------------
