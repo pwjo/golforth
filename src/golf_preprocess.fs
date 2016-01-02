@@ -31,6 +31,7 @@ s" do" , , ' golf_do ,
 s" [" , , ' golf_slice_start ,
 s" ]" , , ' anon_array ,
 s" ?" , , ' golf_? ,
+s" ," , , ' golf_, ,
 
 \ incomplete
 s" !" , , ' golf_! ,

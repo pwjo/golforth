@@ -526,6 +526,7 @@ Defer golf_equal
 
 : golf_*_arrblock { tyarr tyblock -- varies }
     tyarr tyblock val golf_foldl ;
+
 \ --------------------------------
 \ - Golfscript ) Operator
 \ --------------------------------
@@ -566,6 +567,35 @@ Defer golf_equal
         typeno_block OF 0 ENDOF ( Implement? )
     ENDCASE ;
 
+\ --------------------------------
+\ - Golfscript , Operator
+\ --------------------------------
+
+: golf_,_int { tyint -- tyarr }
+    golf_slice_start
+    tyint val 0 u+do
+        i anon_int
+    loop anon_array ;
+
+: golf_,_arr ( tyarr -- tysz )
+    val nip anon_int ;
+
+: golf_,_block { tyarr tyblock -- tyfilteredarr }
+    golf_slice_start
+    tyarr val nip 0 u+do
+        tyarr i golf_array_nth dup
+        tyblock golf_sim golf_! val 0>
+        IF drop ENDIF
+    loop
+    anon_array
+;
+
+: golf_, ( tyi -- tyo )
+    dup golf_type CASE
+        typeno_int OF golf_,_int ENDOF
+        typeno_array OF golf_,_arr ENDOF
+        typeno_block OF golf_,_block ENDOF
+    ENDCASE ;
 
 \ --------------------------------
 \ - Golfscript ? Operator
