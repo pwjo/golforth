@@ -506,6 +506,27 @@ Defer golf_equal
 
 
 \ --------------------------------
+\ - Golfscript * Operator
+\ --------------------------------
+
+: golf_*_intint { tyn1 tyn2 -- tyno }
+    tyn1 val tyn2 val * anon_int ;
+
+: golf_*_blockint { tyblock tyint -- varies }
+    tyint val 0 u+do
+        tyblock golf_sim
+    loop ;
+
+: golf_*_arrint { tyarr tyint -- tyarr }
+    golf_slice_start
+    tyint val 0 u+do
+        tyarr golf_sim
+    loop
+    anon_array ;
+
+: golf_*_arrblock { tyarr tyblock -- varies }
+    tyarr tyblock val golf_foldl ;
+\ --------------------------------
 \ - Golfscript ) Operator
 \ --------------------------------
 \ increment number
