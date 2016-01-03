@@ -214,7 +214,7 @@
     Typesystem
     \begin{itemize}
         \item Values as scalar references on stack
-        \item Anonymous functions vs Memory
+        \item Anonymous functions
           \begin{itemize}
           \item
             \begin{alltt}
@@ -222,29 +222,104 @@
               : anon\_int \{ u -- typext \} \\
               \quad:noname  u POSTPONE LITERAL POSTPONE typeno\_int  POSTPONE ; ;
             \end{alltt}
-          \item
-            \begin{alltt}
-              \scriptsize
-              : anon\_int \{ u -- addr \}\\
-              \quad 2 cells allocate IF\\
-              \qquad abort\\
-              \quad ELSE\\
-              \qquad tuck ! typeno\_int over cell+ !\\
-              \quad ENDIF\\
-            \end{alltt}
-          \end{itemize}
+     \end{itemize}
     \end{itemize}
 
 
 %    \vspace{0.1cm}
 
     \begin{center}
-        \texttt{12 anon\_int s" 1 anon\_int golf\_+" anon\_block} \\
+        \texttt{12 anon\_int s" foo" anon\_str} \\
         $\downarrow$ \\
-        \texttt{2 elements on stack (12 and \{1+\})}
+        \texttt{2 elements on stack (12 and 'foo')}
     \end{center}
 
 \end{frame}
+
+
+
+\begin{frame}
+    Parser
+    \begin{itemize}
+        \item translates golfscript to forth execution tokens 
+        \item based on regular expression of reference implementation 
+        \item Responsible for:
+        \begin{itemize}
+            \item infer initial type from syntax
+            \item symbol table for variable tracking
+            \item note that every value can be a variable!
+        \end{itemize}
+    \end{itemize}
+
+
+    %\vspace{0.3cm}
+
+\begin{center}
+    \small{    
+    \texttt{12 'foo':x} \\
+$\downarrow$ \\
+(creating x in symbol table) \\
+$\downarrow$ \\
+    \texttt{12 anon\_int s" foo" anon\_str dup x !} \\
+}
+\end{center}
+
+\end{frame}
+
+%
+%\begin{frame}[fragile]
+%
+%  \vspace{0.5cm}
+%Implementation: Rule Table
+%    \small
+%\begin{verbatim}
+%create token-rules
+%rgx-variable-string , 0 , ' execute-op-or-var , 
+%rgx-string-single   , 1 , ' execute-string ,    
+%rgx-string-double   , 1 , ' execute-string ,    
+%rgx-integer         , 0 , ' execute-integer ,   
+%rgx-comment         , 0 , ' execute-comment ,   
+%rgx-store           , 0 , ' execute-store ,     
+%rgx-block-start     , 0 , ' execute-block-start ,  
+%rgx-block-end       , 0 , ' execute-block-end ,  
+%rgx-store           , 0 , ' execute-store ,     
+%rgx-variable-char   , 0 , ' execute-op-or-var , 
+%0 ,
+%\end{verbatim}
+%
+%
+%\end{frame}
+%
+%\begin{frame}[fragile]
+%
+%  \vspace{0.5cm}
+%Implementation: Regexp for Strings
+%    \small
+%\begin{verbatim}
+%S\" ^'((?:\\\\.|[^'])*)'?" regex$ constant rgx-string-single
+%S\" ^\"((?:\\\\.|[^\"])*)\"?" regex$ constant rgx-string-double
+%\end{verbatim}
+%
+%  \vspace{0.5cm}
+%\large
+%Implementation: Immediate Generator for Strings
+%    \small
+%\begin{verbatim}
+%: execute-string  { buf buf-len addr u } 
+%
+%    buf buf-len S\"  S\\\" " str-append 
+%    addr u str-append 
+%    S\" \" anon_str " str-append 
+%;
+%\end{verbatim}
+%
+%
+%\end{frame}
+%
+
+
+
+
 
 \begin{frame}
     Arrays
@@ -260,161 +335,43 @@
     \end{itemize}
 \end{frame}
 
-\begin{frame}
-  Arrays Implementation
-
-  \vspace{0.5cm}
-
-    \begin{alltt}
-      \scriptsize
-      : golf\_slice\_start ( -- ) \\
-      \quad depth slice\_start ! ;
-    \end{alltt}
-
-    \begin{alltt}
-      \scriptsize
-      : anon\_array ( x1 ... xn -- array ) \\
-      \quad depth slice\_start @ - dup >r \\
-      \quad dup cells dup  allocate \\
-      \quad + swap 0 u+do \\
-      \qquad cell tuck ! \\
-      \quad loop r> \\
-      \quad \dots ; \\
-    \end{alltt}
-
-    \begin{alltt}
-      \scriptsize
-      [1 3 5] -> golf\_slice\_start 1 anon\_int 3 anon\_int  5 anon\_int anon\_array
-    \end{alltt}
-\end{frame}
-
+%\begin{frame}
+%  Arrays Implementation
+%
+%  \vspace{0.5cm}
+%
+%    \begin{alltt}
+%      \scriptsize
+%      : golf\_slice\_start ( -- ) \\
+%      \quad depth slice\_start ! ;
+%    \end{alltt}
+%
+%    \begin{alltt}
+%      \scriptsize
+%      : anon\_array ( x1 ... xn -- array ) \\
+%      \quad depth slice\_start @ - dup >r \\
+%      \quad dup cells dup  allocate \\
+%      \quad + swap 0 u+do \\
+%      \qquad cell tuck ! \\
+%      \quad loop r> \\
+%      \quad \dots ; \\
+%    \end{alltt}
+%
+%    \begin{alltt}
+%      \scriptsize
+%      [1 3 5] -> golf\_slice\_start 1 anon\_int 3 anon\_int  5 anon\_int anon\_array
+%    \end{alltt}
+%\end{frame}
+%
 \begin{frame}
     Blocks
 
     \begin{itemize}
-        \item Stored as already translated strings
-        \item Operations: \texttt{2\{1+\}+ }$\rightarrow$ \texttt{\{2 1+\}}
-        \item Execution via \texttt{evaluate}
+        \item Stored as execution tokens
+        \item Operations: \texttt{2\{1+\}+ }$\rightarrow$ \texttt{\{2 1+\}} \\
+              implemented as function composition
+        \item Execution via \texttt{execute}
     \end{itemize}
-\end{frame}
-
-
-\begin{frame}
-    Parser
-    \begin{itemize}
-        \item translates golfscript to forth based intermediate strings
-        \item based on regular expression of reference implementation 
-        \item Responsible for:
-        \begin{itemize}
-            \item infer initial type from syntax
-            \item symbol table for variable tracking
-            \item note that every value can be a variable!
-        \end{itemize}
-    \end{itemize}
-
-
-    %\vspace{0.3cm}
-
-\begin{center}
-    \small{    
-\texttt{"2 \{1+\}:x"}  \\
-$\downarrow$ \\
-(creating x in symbol table) \\
-$\downarrow$ \\
-\texttt{2 anon\_int s" 1 anon\_int golf\_+" anon\_block x , }
-}
-\end{center}
-
-\end{frame}
-
-
-\begin{frame}[fragile]
-
-  \vspace{0.5cm}
-Implementation: Rule Table
-    \small
-\begin{verbatim}
-create token-rules
-rgx-variable-string , 0 , ' execute-op-or-var , 
-rgx-string-single   , 1 , ' execute-string ,    
-rgx-string-double   , 1 , ' execute-string ,    
-rgx-integer         , 0 , ' execute-integer ,   
-rgx-comment         , 0 , ' execute-comment ,   
-rgx-store           , 0 , ' execute-store ,     
-rgx-block-start     , 0 , ' execute-block-start ,  
-rgx-block-end       , 0 , ' execute-block-end ,  
-rgx-store           , 0 , ' execute-store ,     
-rgx-variable-char   , 0 , ' execute-op-or-var , 
-0 ,
-\end{verbatim}
-
-
-\end{frame}
-
-\begin{frame}[fragile]
-
-  \vspace{0.5cm}
-Implementation: Regexp for Strings
-    \small
-\begin{verbatim}
-S\" ^'((?:\\\\.|[^'])*)'?" regex$ constant rgx-string-single
-S\" ^\"((?:\\\\.|[^\"])*)\"?" regex$ constant rgx-string-double
-\end{verbatim}
-
-  \vspace{0.5cm}
-\large
-Implementation: Immediate Generator for Strings
-    \small
-\begin{verbatim}
-: execute-string  { buf buf-len addr u } 
-
-    buf buf-len S\"  S\\\" " str-append 
-    addr u str-append 
-    S\" \" anon_str " str-append 
-;
-\end{verbatim}
-
-
-\end{frame}
-
-
-
-\begin{frame}
-    Type Coercion and Overloading
-
-    \begin{itemize}
-        \item Typeorder for Coercion
-        \item Coercion according to highest order type
-        \item Heavy operator overloading results in wide range of functionality
-
-    \end{itemize}
-\end{frame}
-
-
-\begin{frame}[fragile]
-
-\small \begin{lstlisting}
-
-*: Multiplication
-    2 4* -> 8
-
-*: Execute a block a certain number of times
-    2 {2*} 5* -> 64
-
-*: Array/string repeat
-    [1 2 3]2* -> [1 2 3 1 2 3]
-    3'asdf'* -> "asdfasdfasdf"
-
-*: Join
-    [1 2 3]','* -> "1,2,3"
-    [1 2 3][4]* -> [1 4 2 4 3]
-
-*: Fold
-    [1 2 3 4]{+}* -> 10
-    'asdf'{+}* -> 414
-
-\end{lstlisting}
-
 \end{frame}
 
 \begin{frame}[fragile]
@@ -427,21 +384,117 @@ Implementation: Immediate Generator for Strings
         \item \texttt{5\{.\}\{1-.\}until}  $\rightarrow$  5
         \item implemented as words which consume code blocks
     \end{itemize}
-    \begin{verbatim}
-        : golf_do { block }
-            BEGIN
-                block golf_execute
-            WHILE
-            REPEAT ;
-    \end{verbatim}
+%    \begin{verbatim}
+%        : golf_do { block }
+%            BEGIN
+%                block golf_execute
+%            WHILE
+%            REPEAT ;
+%    \end{verbatim}
 \end{frame}
 
+
+\begin{frame}[fragile]
+  \vspace{0.5cm}
+    Type Coercion and Overloading
+
+    \begin{itemize}
+        \item Typeorder for Coercion
+        \item Coercion according to highest order type
+        \item Heavy operator overloading results in wide range of functionality
+
+    \end{itemize}
+
+    Hier koennten die demos beginnen: 
+
+    Operator in shell zeigen und evtl entsprechende implementierung
+%\scriptsize \begin{lstlisting}
+%: golf_sim ( typed -- ... )
+%    dup golf_type CASE
+%        typeno_int OF golf_sim_int ENDOF
+%        typeno_str OF  golf_sim_str ENDOF
+%        typeno_block OF golf_sim_str ENDOF
+%        typeno_array OF golf_sim_array ENDOF
+%    ENDCASE ;
+%\end{lstlisting}
+%
+
+\end{frame}
+
+
+\begin{frame}[fragile]
+
+
+        \tiny
+    \begin{tabular}{l l}
+        \textasciitilde & 100 \\
+        ` & 0 \\
+        ! & 100 \\
+        @ & 100 \\
+        \$ & 0 \\
+        + & 100 \\
+        - & 75 not for blocks\\
+        $\ast$ & 0 \\
+        / & 0 \\
+        \% & 25 \\
+        $\vert$ & 0 \\
+        \& & 0 \\
+        \textasciicircum & 0 \\
+        \textbackslash & 100 \\
+        ; & 100 \\
+        \textless & 0 \\
+        \textgreater & 0 \\
+        = & 88 \\
+        , & 75 \\
+        . & 100 \\
+        ? & 75 \\
+        ( & 75 \\
+        ) & 75 \\
+        and or xor & 0 \\
+        print n puts & 100 \\
+        p & 0 \\
+        until while do& 100 \\
+        if & 100 \\
+        abs & 0 \\
+        zip & 0 \\
+        base & 0 \\
+
+    \end{tabular}
+\end{frame}
+
+%\begin{frame}[fragile]
+%
+%\small \begin{lstlisting}
+%
+%*: Multiplication
+%    2 4* -> 8
+%
+%*: Execute a block a certain number of times
+%    2 {2*} 5* -> 64
+%
+%*: Array/string repeat
+%    [1 2 3]2* -> [1 2 3 1 2 3]
+%    3'asdf'* -> "asdfasdfasdf"
+%
+%*: Join
+%    [1 2 3]','* -> "1,2,3"
+%    [1 2 3][4]* -> [1 4 2 4 3]
+%
+%*: Fold
+%    [1 2 3 4]{+}* -> 10
+%    'asdf'{+}* -> 414
+%
+%\end{lstlisting}
+%
+%\end{frame}
+%
 
 \begin{frame}
     Cutbacks
     \begin{itemize}
     \item Error Handling differs
     \item Probably not all operators implemented
+    \item Block operations not completly implemnted
     \end{itemize}
 \end{frame}
 

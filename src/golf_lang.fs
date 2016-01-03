@@ -3,7 +3,7 @@
 3 constant typeno_str
 4 constant typeno_block
 
-Defer golf-preprocess ( caddr u -- xt )
+Defer golf-parse ( caddr u -- xt )
 
 20 constant max_array_depth
 
@@ -139,11 +139,49 @@ create slice_start_idx 0 ,
     val nip ;
 
 
+
+\ -------------------------------
+\ - Golfscript ! Operator
+\ -------------------------------
+
+: golf_!_int ( int -- int )
+    val 0= IF 1 ELSE 0 ENDIF anon_int ;
+
+: golf_!_length ( array/string -- int )
+    val nip 0= IF 1 ELSE 0 ENDIF anon_int ;
+
+: golf_! ( varies - int )
+    dup golf_type CASE
+        typeno_int OF golf_!_int ENDOF
+        typeno_array OF golf_!_length ENDOF
+        typeno_str OF golf_!_length ENDOF
+        typeno_block OF 0 ENDOF ( Implement? )
+    ENDCASE ;
+
+
+
+\ -----------------------------
+\ boolean helpers
+\ -----------------------------
+
+: flag_to_golf_boolean ( flag -- typed-int )
+
+    if 1 anon_int 
+    else 0 anon_int 
+    then 
+;
+
+: golf_boolean_to_flag ( typed -- flag )
+
+    golf_! val 0=
+;
+
+
 \ -----------------------------
 \ - Golfscript ~ Operator
-\ ----------------------------
+\ -----------------------------
 : golf_sim_str ( tstr -- )
-    val golf-preprocess execute
+    val golf-parse execute
 ;
 
 : golf_sim_int ( tu -- typedxt )
@@ -419,12 +457,6 @@ Defer golf_equal
 ;
 
 
-: flag_to_golf_boolean ( flag -- typed-int )
-
-    if 1 anon_int 
-    else 0 anon_int 
-    then 
-;
 
 : golf_= { ty1 ty2 -- typed-int }
 
@@ -496,13 +528,63 @@ Defer golf_equal
 \ --------------------------------
 \ - Golfscipt % Operator
 \ -------------------------------
-: golf_%_int { ty1 ty2 -- tyo }
+: golf_%_int_int { ty1 ty2 -- tyo }
     ty1 val ty2 val mod anon_int ;
 
+
+: golf_%_index ( typed-int typed-compound ) 
+;
+
+\ map functionality
+: golf_%_map_array_block { typed-arr typed-block -- }
+
+    golf_slice_start
+    typed-arr typed-block val 
+    golf_each
+    anon_array 
+;
+
+: golf_%_map ( typed-compound typed-block -- )
+
+    over golf_type CASE
+        typeno_array OF golf_%_map_array_block ENDOF
+        typeno_str OF 1 throw ENDOF
+        typeno_block OF 1 throw ENDOF
+    ENDCASE 
+;
+
 : golf_% ( ty1 ty2 -- tyo )
-    dup golf_type CASE
-        typeno_int OF golf_%_int ENDOF
-    ENDCASE ;
+
+    2dup 2op_same_type if
+
+        dup golf_type CASE
+            typeno_int OF golf_%_int_int ENDOF
+            typeno_array OF 1 throw ENDOF
+            typeno_str OF 1 throw ENDOF
+            typeno_block OF 1 throw ENDOF
+        ENDCASE 
+
+        EXIT 
+    then
+
+    \ we have different operands
+    2op_type_order 
+
+    \ is the smaller one an integer? -> index filter
+    2dup drop golf_type typeno_int = if
+            golf_%_index 
+            EXIT
+    then
+
+    \ is the bigger one a block ? -> map 
+    2dup nip golf_type typeno_block = if
+            golf_%_map
+            EXIT
+    then
+
+    1 throw
+;
+
 
 
 \ --------------------------------
@@ -548,24 +630,6 @@ Defer golf_equal
          typeno_int OF golf_)_int ENDOF
          typeno_array OF golf_)_array ENDOF
      ENDCASE ;
-
-\ -------------------------------
-\ - Golfscript ! Operator
-\ -------------------------------
-
-: golf_!_int ( int -- int )
-    val 0= IF 1 ELSE 0 ENDIF anon_int ;
-
-: golf_!_length ( array/string -- int )
-    val nip 0= IF 1 ELSE 0 ENDIF anon_int ;
-
-: golf_! ( varies - int )
-    dup golf_type CASE
-        typeno_int OF golf_!_int ENDOF
-        typeno_array OF golf_!_length ENDOF
-        typeno_str OF golf_!_length ENDOF
-        typeno_block OF 0 ENDOF ( Implement? )
-    ENDCASE ;
 
 \ --------------------------------
 \ - Golfscript , Operator
@@ -636,16 +700,78 @@ Defer golf_equal
 : golf_@  rot ;
 
 
-\ --------------------------------
-\ - Golfscript loop constructs
-\ --------------------------------
- : golf_do { tyblock -- .. }
+\ ----------------------------------------------
+\ - Golfscript loop and conditional constructs
+\ ----------------------------------------------
+
+: golf_do { tyblock -- .. }
     BEGIN
         tyblock golf_sim
-        val
+        golf_boolean_to_flag
     WHILE 
     REPEAT 
 ;
+
+: golf_while { tyblock-condition tyblock-body -- .. }
+    BEGIN
+        tyblock-condition golf_sim  
+        golf_boolean_to_flag
+    WHILE 
+        tyblock-body golf_sim
+    REPEAT 
+;
+
+: golf_until { tyblock-condition tyblock-body -- .. }
+    BEGIN
+        tyblock-condition golf_sim  
+        golf_boolean_to_flag invert
+    WHILE 
+        tyblock-body golf_sim
+    REPEAT 
+;
+
+
+
+\ if a block is given we execute the typed, else we just leave it on the stack
+: if_execute ( typed -- typed1) 
+    dup golf_type 
+    typeno_block = if 
+        golf_sim
+    then
+;
+
+: golf_if { ty1 ty2 ty3 --  }
+
+    ty1 golf_boolean_to_flag if 
+        ty2 if_execute
+    else
+        ty3 if_execute
+    then
+;
+
+\ -----------------------------
+\  Golfscript print operators
+\ ----------------------------
+
+: golf_print ( typed -- )
+    typeno_str coerce_to
+    val type
+;
+
+: golf_n ( -- typed-str)
+    S\" \n" anon_str
+;
+
+: golf_puts ( typed -- )
+    
+    golf_print
+    golf_n
+    golf_print 
+;
+
+
+
+
 
 s" golf_coercion.fs" included
 
