@@ -1,7 +1,7 @@
 
 s" stdlib.fs" included
 s" golf_lang.fs" included
-s" golf_preprocess.fs" included
+s" golf_parser.fs" included
 
 : get-filename
 next-arg dup 0= if

@@ -1,37 +1,46 @@
 
 s" stdlib.fs" included
 s" golf_lang.fs" included
-s" golf_preprocess.fs" included
+s" golf_parser.fs" included
 
-: get-filename
-next-arg dup 0= if
-    s" usage: <golfscriptfile>" type cr
-    bye
-then
-;
 
-: dump_stack
+: dump_stack ( * -- ) 
 depth 0 +do 
     val_dump cr
 LOOP
 ;
 
 
-: golf-stdin 
+: golf-prompt ( -- )
+
+    s" golf$" type cr
+;
+
+
+: golf-execute ( xt -- )
+
+    get-order golf-wordlist swap 1+ set-order
+    execute
+    get-order nip 1- set-order
+;
+
+
+: golf-stdin ( -- )
+
+    1024 allocate throw { buf } 
 
     begin 
     
-        s" golf$" type cr
-        1024 allocate throw { buf } 
         buf 1024 stdin read-line throw 
     
+        golf-prompt
+
         while 
-        buf swap 
-        
-            golf-preprocess
-            get-order golf-wordlist swap 1+ set-order
-            execute
-            get-order nip 1- set-order
+            buf swap 
+
+            golf-parse
+            golf-execute
+
             dump_stack
    repeat 
 ; 

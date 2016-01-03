@@ -104,7 +104,7 @@
 
 
 : coerce_str_to_block  ( typed-string -- typed-block )
-    val golf-preprocess anon_block
+    val golf-parse anon_block
 ;
 
 : coerce_str_to ( typed typedid -- typed )

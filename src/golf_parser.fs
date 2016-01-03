@@ -27,20 +27,29 @@ s" \" , , ' golf_backslash ,
 s" @" , , ' golf_@ ,
 
 s" do" , , ' golf_do ,
+s" while" , , ' golf_while ,
+s" until" , , ' golf_until ,
+s" if" , , ' golf_if ,
 
 s" [" , , ' golf_slice_start ,
 s" ]" , , ' anon_array ,
 s" ?" , , ' golf_? ,
 s" ," , , ' golf_, ,
 
+s" +" , , ' golf_+ ,
+
+s" print" , , ' golf_print ,
+s" puts" , , ' golf_puts ,
+s" n" , , ' golf_n ,
+
+\ done with functionality we will not implement
+s" =" , , ' golf_= , \ block index function
+s" -" , , ' golf_- , \ block filter function
+
 \ incomplete
 s" !" , , ' golf_! ,
 s" )" , , ' golf_) ,
 
-s" =" , , ' golf_= ,
-
-s" +" , , ' golf_+ ,
-s" -" , , ' golf_- ,
 s" %" , , ' golf_% ,
 
 0 ,
@@ -228,12 +237,26 @@ Defer execute-token ( caddr u xt -- caddr1 u1 xt1 flag )
 
 ;
 
+\ standard token execution (everyring but '{' '}' or ':'
+: standard-token { addr-token u-token xt-token xt  --  caddr1 u1 xt1 flag }
+    
+    \ first we have to check if we are a variable
+    addr-token u-token golf-wordlist search-wordlist 
+    if  xt swap
+        execute-variable-use 
+
+    else                          
+        xt addr-token u-token xt-token
+        execute
+    then 
+
+;
+
+
+\ parsing string in caddr u and attaching it to xt
 : execute-token-impl { caddr u xt -- caddr1 u1 xt1 flag }
 
-    caddr u
-
-
-    get-execute-token
+    caddr u get-execute-token
 
     \ exit if nothing was found
     dup 0= if drop xt 0 EXIT then
@@ -248,35 +271,24 @@ Defer execute-token ( caddr u xt -- caddr1 u1 xt1 flag )
             -1
         ENDOF
           
-        \ 
         \ special case: block start '{' 
-        \ 
         ['] execute-block-start OF
-            2drop  xt 
-            collect-block-token -1
+            2drop  
+            xt collect-block-token 
+            -1
         ENDOF
 
         
+        \ special case: block end '}' 
         ['] execute-block-end OF
-            2drop xt -2
+            2drop 
+            xt 
+            -2
         ENDOF
 
-    \ 
-    \ standard token execution (everyring but '{' '}' or ':'
-    \ 
-    { addr-token u-token xt-token }
-
-    
-    \ first we have to check if we are a variable
-     addr-token u-token golf-wordlist search-wordlist 
-    if  xt swap
-        execute-variable-use 
-
-    else                          
-        xt addr-token u-token xt-token
-        execute
-    then 
-    -1
+        \ standard token execution (everyring but '{' '}' or ':'
+            xt standard-token
+            -1
 
     0 \ this is a dummy for drop in the endcase
     ENDCASE 
@@ -288,7 +300,7 @@ Defer execute-token ( caddr u xt -- caddr1 u1 xt1 flag )
 
 
 
-: golf-preprocess-impl ( caddr u -- xt )
+: golf-parse-impl ( caddr u -- xt )
 
     :noname POSTPONE ;
 
@@ -300,4 +312,4 @@ Defer execute-token ( caddr u xt -- caddr1 u1 xt1 flag )
     nip nip 
 ;
 
-' golf-preprocess-impl IS golf-preprocess
+' golf-parse-impl IS golf-parse
