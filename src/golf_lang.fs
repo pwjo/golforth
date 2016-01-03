@@ -103,6 +103,8 @@ create slice_start_idx 0 ,
 \ - Array zeug
 \ ------------------------
 
+(        active_slice_start dup @ r> + swap ! )
+
 : current_slice_start ( -- addr )
     slice_start slice_start_idx @ cells + ;
 : active_slice_start ( -- addr )
@@ -111,6 +113,20 @@ create slice_start_idx 0 ,
     slice_start_idx dup @ 1+ swap ! ;
 : dec_slice_start_idx ( -- )
     slice_start_idx dup @ 1- swap ! ;
+
+: move_slice_start { by idx -- }
+    slice_start idx cells + dup @ by + swap ! ;
+
+: shift_down_slice_start { n -- }
+    depth
+    0 slice_start_idx @ 1- do
+        dup slice_start i cells + @ - n - dup
+        0< IF
+            i move_slice_start
+        ELSE
+            drop  LEAVE
+        ENDIF
+    -1 +loop drop ;
 
 : golf_slice_start ( -- )
     slice_start_idx @ max_array_depth < if
@@ -630,9 +646,14 @@ Defer golf_equal
 \ -----------------------------
 \ - Golfscript stack operators
 \ ----------------------------
-: golf_.  dup ;
+
+: golf_.
+   1 shift_down_slice_start
+   dup ;
 : golf_;  drop ;
-: golf_backslash  swap ;
+: golf_backslash
+    2 shift_down_slice_start
+    swap ;
 : golf_@  rot ;
 
 
