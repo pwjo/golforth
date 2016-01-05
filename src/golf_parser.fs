@@ -41,6 +41,8 @@ s" +" , , ' golf_+ ,
 s" print" , , ' golf_print ,
 s" puts" , , ' golf_puts ,
 s" n" , , ' golf_n ,
+s" abs" , , ' golf_abs ,
+s" base" , , ' golf_base ,
 
 \ done with functionality we will not implement
 s" =" , , ' golf_= , \ block index function
