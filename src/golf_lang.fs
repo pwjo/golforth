@@ -715,6 +715,29 @@ Defer golf_equal
         typeno_block OF golf_?_block ENDOF
     ENDCASE ;
 
+
+
+\ --------------------------------
+\ - Golfscript zip Operator
+\ --------------------------------
+create arr_to_len :noname val nip anon_int ; ,
+create tyint_max :noname val swap val max anon_int ; ,
+: _max_inner_len ( arr -- n )
+    arr_to_len anon_block golf_%_map
+    tyint_max golf_foldr val ;
+
+: golf_zip_t { tyarr tgt_type -- tyarrt }
+    golf_slice_start
+    tyarr _max_inner_len 0 u+do
+        tyarr
+        :noname i POSTPONE LITERAL POSTPONE anon_int POSTPONE golf_= POSTPONE ; \ map elements to index i
+        anon_block golf_%_map  tgt_type coerce_to
+    loop anon_array ;
+
+: golf_zip { tyarr -- tyarrt }
+    tyarr tyarr 0 golf_array_nth golf_type
+    golf_zip_t ;
+
 \ --------------------------------
 \ - Golfscript abs Operator
 \ --------------------------------
