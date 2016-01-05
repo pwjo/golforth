@@ -65,6 +65,10 @@ a3
 [65] 'rray' +
 Array
 
+# over cellsize ;)
+[65 66 67 68 69] 'rray' +
+ABCDErray
+
 [ 65 'dora'] 'esel' +
 Adoraesel
 
