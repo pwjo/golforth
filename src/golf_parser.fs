@@ -33,6 +33,7 @@ s" if" , , ' golf_if ,
 
 s" [" , , ' golf_slice_start ,
 s" ]" , , ' anon_array ,
+s" (" , , ' golf_( ,
 s" ?" , , ' golf_? ,
 s" ," , , ' golf_, ,
 
@@ -43,6 +44,7 @@ s" puts" , , ' golf_puts ,
 s" n" , , ' golf_n ,
 s" abs" , , ' golf_abs ,
 s" base" , , ' golf_base ,
+s" zip" , , ' golf_zip ,
 
 s" =" , , ' golf_= , \ block index function
 s" -" , , ' golf_- , \ block filter function
