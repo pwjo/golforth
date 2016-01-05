@@ -148,6 +148,15 @@ create slice_start_idx 0 ,
     make_array_xt dec_slice_start_idx ;
 
 
+: anon_array_reverse
+    depth active_slice_start @ - dup >r
+    dup cells allocate drop dup >r
+    swap 0 u+do
+        tuck ! cell +
+    loop drop r> r>
+    make_array_xt dec_slice_start_idx ;
+
+
 : golf_array_nth ( arr n -- arr[n] )
     swap val drop swap cells + @ ;
 
@@ -706,6 +715,38 @@ Defer golf_equal
         typeno_block OF golf_?_block ENDOF
     ENDCASE ;
 
+\ --------------------------------
+\ - Golfscript abs Operator
+\ --------------------------------
+: golf_abs ( tyint -- +tyint )
+    val abs anon_int ;
+
+\ --------------------------------
+\ - Golfscript base Operator
+\ --------------------------------
+
+: golf_base_intint { tyn tyradix -- tyarr }
+    golf_slice_start
+    tyn val
+    begin
+        dup tyradix val >= while
+            tyradix val /mod swap anon_int swap
+    repeat
+    anon_int
+    anon_array_reverse ;
+
+: golf_base_arrint { tyarr tyradix -- tyint }
+    tyradix val 0
+    tyarr val nip 0 u+do
+        tyarr i golf_array_nth val ( radix cur pos )
+        + over *
+    loop tyradix val / anon_int nip ;
+
+: golf_base ( ty1 ty2 -- ty3 )
+    2dup 2op_max_type CASE
+        typeno_int OF golf_base_intint ENDOF
+        typeno_array OF golf_base_arrint ENDOF
+    ENDCASE ;
 
 \ -----------------------------
 \ - Golfscript stack operators
