@@ -33,6 +33,7 @@ s" if" , , ' golf_if ,
 
 s" [" , , ' golf_slice_start ,
 s" ]" , , ' anon_array ,
+s" (" , , ' golf_( ,
 s" ?" , , ' golf_? ,
 s" ," , , ' golf_, ,
 

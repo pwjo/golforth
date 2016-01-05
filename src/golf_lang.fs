@@ -836,7 +836,6 @@ Defer golf_% ( ty1 ty2 -- tyo )
 : golf_)_int ( tyn -- tyn+1 )
     val 1+ anon_int ;
 
-\ XXX missing handling of special cases (array size 0 or 1)
 : golf_)_array ( array -- front last )
     golf_slice_start
     dup val 1- 0 u+do
@@ -849,6 +848,28 @@ Defer golf_% ( ty1 ty2 -- tyo )
      dup golf_type CASE
          typeno_int OF golf_)_int ENDOF
          typeno_array OF golf_)_array ENDOF
+     ENDCASE ;
+
+
+\ --------------------------------
+\ - Golfscript ( Operator
+\ --------------------------------
+\ increment number
+: golf_(_int ( tyn -- tyn+1 )
+    val 1- anon_int ;
+
+: golf_(_array { tyarray -- tail head }
+    tyarray 0 golf_array_nth
+    golf_slice_start
+    tyarray val nip 1 u+do
+        tyarray i golf_array_nth
+    loop
+    anon_array swap ;
+
+: golf_(
+     dup golf_type CASE
+         typeno_int OF golf_(_int ENDOF
+         typeno_array OF golf_(_array ENDOF
      ENDCASE ;
 
 \ --------------------------------
