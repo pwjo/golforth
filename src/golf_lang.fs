@@ -6,6 +6,7 @@
 Defer golf-parse ( caddr u -- xt )
 Defer golf_equal ( ty1 ty2 - flag )
 Defer golf_sim ( typed -- ... )
+Defer golf_% ( ty1 ty2 -- tyo )
 
 
 20 constant max_array_depth
@@ -102,9 +103,9 @@ create slice_start_idx 0 ,
 ;
 
 
-\ -----------------------
-\ - Array zeug
-\ ------------------------
+\ -----------------------------
+\ array operators and helpers
+\ -----------------------------
 
 (        active_slice_start dup @ r> + swap ! )
 
@@ -187,6 +188,7 @@ create slice_start_idx 0 ,
     \ check u1 bounds
     typed-arr1 golf_array_len 1- 
     dup u1 < if 
+        drop
         golf_make_empty_array
         EXIT
     then
@@ -306,14 +308,29 @@ create slice_start_idx 0 ,
 \ ------------------------------
 \ array/string iteration words
 \ ------------------------------
-: golf_foldr { arr xt -- varies } arr golf_sim arr golf_array_len 1 u+do xt execute loop ;
-: golf_foldl { arr xt -- varies } arr 0 golf_array_nth arr golf_array_len 1 u+do arr i golf_array_nth xt execute loop ; 
+: golf_foldr { arr xt -- varies } 
 
-: golf_each { arr xt -- varies } arr golf_array_len 0 u+do arr i golf_array_nth xt execute loop ; 
-: golf_each_reverse { arr xt -- varies } arr golf_sim arr golf_array_len 0 u+do xt execute loop ;
+    arr golf_sim arr golf_array_len 1 u+do xt execute loop ;
 
-: golf_iterate { arr xt -- varies } arr golf_array_len 0 u+do arr i golf_array_nth i xt execute loop ; 
-: golf_iterate_reverse { arr xt -- varies } arr golf_sim arr golf_array_len 0 u+do i xt execute loop ;
+: golf_foldl { arr xt -- varies } 
+
+    arr 0 golf_array_nth arr golf_array_len 1 u+do arr i golf_array_nth xt execute loop ; 
+
+: golf_each { arr xt -- varies } 
+
+    arr golf_array_len 0 u+do arr i golf_array_nth xt execute loop ; 
+
+: golf_each_reverse { arr xt -- varies } 
+
+    arr golf_sim arr golf_array_len 0 u+do xt execute loop ;
+
+: golf_iterate { arr xt -- varies } 
+
+    arr golf_array_len 0 u+do arr i golf_array_nth i xt execute loop ; 
+
+: golf_iterate_reverse { arr xt -- varies } 
+
+    arr golf_sim arr golf_array_len 0 u+do i xt execute loop ;
 
 
 
@@ -398,6 +415,25 @@ Defer coerce_rawcast_to  (  typed typedid -- typed )
     maxt
 ;
 
+
+\ --------------------------------
+\ Golfscipt < Operator
+\ -------------------------------
+: golf_<_int_int ( typed-int typed-int -- typed-int )
+
+    val swap val swap
+    < 
+    flag_to_golf_boolean
+;
+
+
+: golf_< ( ty1 ty2 -- tyo )
+
+    2op_coerce_to_max CASE
+        typeno_int OF golf_<_int_int ENDOF
+        1 throw
+    ENDCASE 
+;
 
 
 
@@ -570,7 +606,7 @@ Defer coerce_rawcast_to  (  typed typedid -- typed )
 
 
 \ --------------------------------
-\ - Golfscipt - Operator
+\ Golfscipt - Operator
 \ -------------------------------
 : golf_-_int { ty1 ty2 -- tyo }
     ty1 val ty2 val - anon_int 
@@ -626,9 +662,21 @@ Defer coerce_rawcast_to  (  typed typedid -- typed )
 \ Golfscipt / Operator
 \ -------------------------------
 
+\ 
+\ math functionality
+\ 
+: golf_/_int_int ( ty1 ty2 -- tyo )
+    val swap val swap
+    / anon_int 
+;
+
+\ 
+\ split functionality
+\ 
+
 : golf_/_split_arr_arr { base-arr search-arr -- tyo }
     
-    \ TODO: what if search array is empty
+    \ empty array crashes ruby implementation
 
     search-arr golf_array_len { search-arr-len }
     golf_make_empty_array
@@ -652,25 +700,176 @@ Defer coerce_rawcast_to  (  typed typedid -- typed )
 ;
 
 
+: golf_/_split_str_str ( typed-str1 typed-str2 -- typed-str3 )
+
+    typeno_array coerce_to swap
+    typeno_array coerce_to swap
+
+    golf_/_split_arr_arr
+
+    :noname POSTPONE typeno_str POSTPONE coerce_to POSTPONE ;
+    anon_block
+    golf_%
+;
+
+
+\ 
+\ group functionality
+\ 
+: golf_/_group_array { typed-int typed-arr -- typed-arr }
+
+    -1 
+    golf_make_empty_array
+    
+    begin { last-index result-arr }
+
+        last-index 
+        typed-arr golf_array_len 1- <
+
+    while 
+
+        last-index typed-int val + 
+        dup
+
+        typed-arr last-index 1+ rot
+        ( to-index typed-arr last-index+1 to-index -- )
+
+        golf_array_slice 
+
+        result-arr swap golf_array_append
+    repeat
+
+    result-arr
+;
+
+
+: golf_/_group_str ( typed-int typed-str -- typed-arr )
+
+    typeno_array coerce_to 
+
+    golf_/_group_array
+
+    :noname POSTPONE typeno_str POSTPONE coerce_to POSTPONE ;
+    anon_block
+    golf_%
+;
+
+: golf_/_group ( typed-int typed-compound -- typed ) 
+
+    dup golf_type CASE
+        typeno_array OF golf_/_group_array ENDOF
+        typeno_str OF  golf_/_group_str ENDOF
+        typeno_block OF 1 throw ENDOF
+    ENDCASE 
+;
+
+
+
+\ 
+\ each functionality
+\ 
+
+
+: golf_/_each_array ( typed-compund typed-block -- varies ) 
+
+    val
+    golf_each 
+;
+
+: golf_/_each ( typed-compund typed-block -- varies ) 
+
+    over golf_type CASE
+        typeno_array OF golf_/_each_array ENDOF
+        \ typeno_str OF  golf_/_each_str ENDOF
+    ENDCASE 
+;
+
+
+\ 
+\ strange unfold functionality
+\ 
+
+: golf_/_strange_unfold { typed-block-cond typed-block-exec -- varies }
+
+    golf_make_empty_array
+
+    begin { result-arr }
+        dup 
+        typed-block-cond val execute
+        golf_boolean_to_flag
+    while
+
+        dup
+
+        result-arr swap golf_array_append { result-arr }
+        
+        typed-block-exec val execute
+
+        result-arr
+    repeat
+
+    drop \ if the check fails the saved var has to be deleted
+
+    result-arr
+;
+
+
+\ 
+\ / function routing
+\ 
+: golf_/ ( ty1 ty2 -- tyo )
+
+    2dup 2op_same_type if
+
+        dup golf_type CASE
+            typeno_int OF golf_/_int_int ENDOF
+            typeno_array OF golf_/_split_arr_arr ENDOF
+            typeno_str OF  golf_/_split_str_str  ENDOF
+            typeno_block OF golf_/_strange_unfold ENDOF
+        ENDCASE 
+
+        EXIT 
+    then
+
+    \ we have different operands
+    2op_type_order 
+
+    \ is the smaller one an integer? -> group split
+    over golf_type typeno_int = if
+        golf_/_group 
+        EXIT
+    then
+
+    \ is the bigger one a block ? -> each 
+    dup golf_type typeno_block = if
+        golf_/_each
+        EXIT
+    then
+
+    \  not reachable
+    1 throw
+;
+
 \ --------------------------------
 \ Golfscipt % Operator
 \ -------------------------------
-Defer golf_% ( ty1 ty2 -- tyo )
 
 \ 
 \ math functionality
 \ 
-: golf_%_int_int { ty1 ty2 -- tyo }
-    ty1 val ty2 val mod anon_int ;
-
+: golf_%_int_int ( ty1 ty2 -- tyo )
+    val swap val swap 
+    mod anon_int 
+;
 
 
 \ 
 \ split functionality
 \ 
 
-\ see the respective / functionality, but we have to filter empty 
-\ arrays
+\ see the respective / functionality, 
+\ but we have to filter empty arrays
+
 : golf_%_split_arr_arr ( typed-arr1 typed-arr2 -- typed-arr3 )
 
   golf_/_split_arr_arr   
@@ -738,8 +937,6 @@ Defer golf_% ( ty1 ty2 -- tyo )
         typeno_str OF  golf_%_index_str ENDOF
         typeno_block OF 1 throw ENDOF
     ENDCASE 
-
-
 ;
 
 
@@ -773,6 +970,9 @@ Defer golf_% ( ty1 ty2 -- tyo )
 ;
 
 
+\ 
+\ % function routing
+\ 
 : golf_%_impl ( ty1 ty2 -- tyo )
 
     2dup 2op_same_type if
@@ -791,21 +991,23 @@ Defer golf_% ( ty1 ty2 -- tyo )
     2op_type_order 
 
     \ is the smaller one an integer? -> index filter
-    2dup drop golf_type typeno_int = if
-            golf_%_index 
-            EXIT
+    over golf_type typeno_int = if
+        golf_%_index 
+        EXIT
     then
 
     \ is the bigger one a block ? -> map 
-    2dup nip golf_type typeno_block = if
-            golf_%_map
-            EXIT
+    dup golf_type typeno_block = if
+        golf_%_map
+        EXIT
     then
 
+    \  not reachable
     1 throw
 ;
 
 ' golf_%_impl IS golf_%
+
 
 \ --------------------------------
 \ - Golfscript * Operator

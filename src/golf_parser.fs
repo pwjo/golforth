@@ -44,15 +44,16 @@ s" n" , , ' golf_n ,
 s" abs" , , ' golf_abs ,
 s" base" , , ' golf_base ,
 
-\ done with functionality we will not implement
 s" =" , , ' golf_= , \ block index function
 s" -" , , ' golf_- , \ block filter function
+s" /" , , ' golf_/ ,
+s" %" , , ' golf_% ,
 
 \ incomplete
 s" !" , , ' golf_! ,
 s" )" , , ' golf_) ,
 
-s" %" , , ' golf_% ,
+s" <" , , ' golf_< ,
 
 0 ,
 
