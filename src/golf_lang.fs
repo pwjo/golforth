@@ -4,6 +4,9 @@
 4 constant typeno_block
 
 Defer golf-parse ( caddr u -- xt )
+Defer golf_equal ( ty1 ty2 - flag )
+Defer golf_sim ( typed -- ... )
+
 
 20 constant max_array_depth
 
@@ -164,6 +167,74 @@ create slice_start_idx 0 ,
     val nip ;
 
 
+: golf_make_empty_array ( -- typed-arr )
+    golf_slice_start 
+    anon_array
+;
+
+
+\ returns a subsection of an array
+\ if u1 is outside of array you will get an empty array
+\ if u2 is outside you will get everything until the end 
+\ of arr1
+: golf_array_slice { typed-arr1 u1 u2 -- typed-arr2 }
+
+     u1 u2 > if
+        golf_make_empty_array
+        EXIT
+    then
+
+    \ check u1 bounds
+    typed-arr1 golf_array_len 1- 
+    dup u1 < if 
+        golf_make_empty_array
+        EXIT
+    then
+
+    \ check u2 bounds
+    dup u2 > if 
+        drop u2     
+    then 1+
+    { limit }
+
+    golf_slice_start
+    limit u1 ?do
+        typed-arr1 i golf_array_nth
+    loop
+    anon_array
+;
+
+
+: golf_array_match_at { typed-arr1 u1 typed-arr2 -- flag }
+
+    typed-arr1 u1 
+    typed-arr2 golf_array_len 1- u1 + \ second index
+    
+    golf_array_slice typed-arr2 golf_equal
+;
+
+
+\ look for arr2 in arr1 starting at index u1
+\ if arr2 has been found, the index in arr1 is returned
+: golf_array_search { typed-arr1 u1 typed-arr2 -- u2 -1 | 0 } 
+
+    typed-arr1 golf_array_len u1 ?do 
+        typed-arr1 i typed-arr2 golf_array_match_at 
+        if
+            i -1 UNLOOP EXIT
+        then
+    loop
+
+    0
+;
+
+: golf_array_append { arr1 typed -- arr2 }
+   golf_slice_start
+        arr1 golf_sim
+        typed
+    anon_array
+;
+
 
 \ -------------------------------
 \ - Golfscript ! Operator
@@ -221,7 +292,7 @@ create slice_start_idx 0 ,
     val execute
 ;
 
-: golf_sim ( typed -- ... )
+: golf_sim_impl ( typed -- ... )
 
     dup golf_type CASE
         typeno_int OF golf_sim_int ENDOF
@@ -230,7 +301,7 @@ create slice_start_idx 0 ,
         typeno_array OF golf_sim_array ENDOF
     ENDCASE ;
 
-
+' golf_sim_impl IS golf_sim
 
 \ ------------------------------
 \ array/string iteration words
@@ -256,7 +327,7 @@ create slice_start_idx 0 ,
 
 : golf_map_raw { arr xt increment-xt -- varies } 
 
-    arr golf_array_len { n } n allocate throw  { store-arr } 
+    arr golf_array_len { n } n increment-xt execute allocate throw  { store-arr } 
 
     store-arr xt increment-xt create_array_transform_store_func { store-xt }
     arr store-xt golf_iterate
@@ -361,7 +432,7 @@ Defer coerce_rawcast_to  (  typed typedid -- typed )
 ;
 
 \ --------------------------------
-\ - Golfscipt = Operator
+\ Golfscipt = Operator
 \ -------------------------------
 
 \ *_equal implements the raw = functionality between
@@ -371,7 +442,6 @@ Defer coerce_rawcast_to  (  typed typedid -- typed )
     val swap val =
 ;
 
-Defer golf_equal
 
 : golf_equal_array ( ty1 ty2 -- flag )
 
@@ -550,18 +620,133 @@ Defer golf_equal
         typeno_block OF 1 throw ENDOF
     ENDCASE ;
 
+
+
 \ --------------------------------
-\ - Golfscipt % Operator
+\ Golfscipt / Operator
 \ -------------------------------
+
+: golf_/_split_arr_arr { base-arr search-arr -- tyo }
+    
+    \ TODO: what if search array is empty
+
+    search-arr golf_array_len { search-arr-len }
+    golf_make_empty_array
+    0 
+    
+    begin { result-arr last-index }
+
+        base-arr last-index search-arr golf_array_search 
+    
+    while { new-index }
+
+        base-arr last-index new-index 1- golf_array_slice
+        result-arr swap golf_array_append
+        new-index search-arr-len +
+    repeat
+
+    \ append the rest 
+    base-arr last-index base-arr golf_array_len 1- 
+    golf_array_slice
+    result-arr swap golf_array_append
+;
+
+
+\ --------------------------------
+\ Golfscipt % Operator
+\ -------------------------------
+Defer golf_% ( ty1 ty2 -- tyo )
+
+\ 
+\ math functionality
+\ 
 : golf_%_int_int { ty1 ty2 -- tyo }
     ty1 val ty2 val mod anon_int ;
 
 
-: golf_%_index ( typed-int typed-compound ) 
+
+\ 
+\ split functionality
+\ 
+
+\ see the respective / functionality, but we have to filter empty 
+\ arrays
+: golf_%_split_arr_arr ( typed-arr1 typed-arr2 -- typed-arr3 )
+
+  golf_/_split_arr_arr   
+  :noname POSTPONE dup POSTPONE golf_! POSTPONE golf_boolean_to_flag 
+          POSTPONE if POSTPONE drop POSTPONE then
+          POSTPONE ;
+  anon_block
+  golf_%
 ;
 
+
+: golf_%_split_str_str ( typed-str1 typed-str2 -- typed-str3 )
+
+    typeno_array coerce_to swap
+    typeno_array coerce_to swap
+
+    golf_%_split_arr_arr
+
+    :noname POSTPONE typeno_str POSTPONE coerce_to POSTPONE ;
+    anon_block
+    golf_%
+;
+
+\ 
+\ index functionality
+\ 
+
+\ negative values revert index
+: index_array_sort ( len u typedd-int -- u ) 
+    val 0< if
+        - 1-
+    else
+        nip    
+    then 
+;
+
+: golf_%_index_array { typed-int typed-array -- } 
+
+    typed-array golf_array_len { len }
+    golf_slice_start
+    len 0 u+do
+
+        len i typed-int index_array_sort { index }
+
+        index typed-int val abs mod 0= if 
+            typed-array index golf_array_nth
+        then
+    loop
+ 
+    anon_array
+ ; 
+
+
+: golf_%_index_str ( typed-int typed-str -- typed-str ) 
+
+    typeno_array coerce_to
+    golf_%_index_array 
+    typeno_str coerce_to
+;
+
+: golf_%_index ( typed-int typed-compound ) 
+
+    dup golf_type CASE
+        typeno_array OF golf_%_index_array ENDOF
+        typeno_str OF  golf_%_index_str ENDOF
+        typeno_block OF 1 throw ENDOF
+    ENDCASE 
+
+
+;
+
+
+\ 
 \ map functionality
-: golf_%_map_array_block { typed-arr typed-block -- }
+\ 
+: golf_%_map_array_block { typed-arr typed-block -- typed-arr }
 
     golf_slice_start
     typed-arr typed-block val 
@@ -569,23 +754,33 @@ Defer golf_equal
     anon_array 
 ;
 
+
+: golf_%_map_str_block ( typed-str typed-block -- typed-str )
+
+    swap typeno_array coerce_to
+    swap golf_%_map_array_block
+
+    typeno_str coerce_to
+;
+
 : golf_%_map ( typed-compound typed-block -- )
 
     over golf_type CASE
         typeno_array OF golf_%_map_array_block ENDOF
-        typeno_str OF 1 throw ENDOF
+        typeno_str OF  golf_%_map_str_block  ENDOF
         typeno_block OF 1 throw ENDOF
     ENDCASE 
 ;
 
-: golf_% ( ty1 ty2 -- tyo )
+
+: golf_%_impl ( ty1 ty2 -- tyo )
 
     2dup 2op_same_type if
 
         dup golf_type CASE
             typeno_int OF golf_%_int_int ENDOF
-            typeno_array OF 1 throw ENDOF
-            typeno_str OF 1 throw ENDOF
+            typeno_array OF golf_%_split_arr_arr ENDOF
+            typeno_str OF  golf_%_split_str_str  ENDOF
             typeno_block OF 1 throw ENDOF
         ENDCASE 
 
@@ -610,7 +805,7 @@ Defer golf_equal
     1 throw
 ;
 
-
+' golf_%_impl IS golf_%
 
 \ --------------------------------
 \ - Golfscript * Operator

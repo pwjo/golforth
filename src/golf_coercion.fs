@@ -4,7 +4,7 @@
 \ -------------------------
 : coerce_int_to_array ( typed-int -- typed-array )
 
-    1 allocate throw dup -rot !
+    1 cells allocate throw dup -rot !
     1 make_array_xt 
 ;
 
@@ -18,7 +18,7 @@
 \ just the integer value as char in a golf string
 : coerce_rawcast_int_to_string ( typed-int -- typed-str )
 
-    val 1 allocate throw dup -rot c! 1
+    val 1 chars allocate throw dup -rot c! 1
     anon_str
 ;
 

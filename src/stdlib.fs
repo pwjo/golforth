@@ -1,7 +1,9 @@
 
 : str-append { addr1 u1 addr2 u2 -- addr u }
-
-    addr1 u1 u2 + dup { u } resize throw { addr }
+    \ damger together with dup ;)
+    \ addr1 u1 u2 + dup { u } resize throw { addr }
+    u1 u2 + dup { u } allocate throw { addr }
+    addr1 addr u1 move
     addr2 addr u1 + u2 move
     addr u 
 ;
