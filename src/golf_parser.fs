@@ -39,6 +39,7 @@ s" ," , , ' golf_, ,
 s" $" , , ' golf_$ ,
 
 s" +" , , ' golf_+ ,
+s" *" , , ' golf_* ,
 
 s" print" , , ' golf_print ,
 s" puts" , , ' golf_puts ,

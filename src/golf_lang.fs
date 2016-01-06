@@ -1143,12 +1143,12 @@ Defer golf_xt_compare
 : golf_*_intint { tyn1 tyn2 -- tyno }
     tyn1 val tyn2 val * anon_int ;
 
-: golf_*_blockint { tyblock tyint -- varies }
+: golf_*_blockint { tyint tyblock  -- varies }
     tyint val 0 u+do
         tyblock golf_sim
     loop ;
 
-: golf_*_arrint { tyarr tyint -- tyarr }
+: golf_*_arrint { tyint tyarr -- tyarr }
     golf_slice_start
     tyint val 0 u+do
         tyarr golf_sim
@@ -1158,6 +1158,47 @@ Defer golf_xt_compare
 : golf_*_arrblock { tyarr tyblock -- varies }
     tyarr tyblock val golf_foldl ;
 
+: golf_*_repeat ( tyn tystr typeid | tyn tyarr typeid -- tystr2 | tyarr2 )
+    >r typeno_array coerce_to
+    golf_*_arrint
+    r> coerce_to ;
+
+: golf_*_int ( varies -- ty1 )
+    2op_type_order
+    2dup 2op_max_type CASE
+        typeno_int OF golf_*_intint ENDOF
+        typeno_block OF golf_*_blockint ENDOF
+        golf_*_repeat 1
+    ENDCASE ;
+
+
+: golf_*_arrarr { tyarr1 tyarr2 -- tyjoinedarr }
+    golf_slice_start
+    tyarr1 val nip 1-  0 u+do
+        tyarr1 i golf_array_nth
+        tyarr2 golf_sim
+    loop
+    tyarr1 dup val nip 1- golf_array_nth
+    anon_array ;
+
+: golf_*_join ( ty1 ty2 -- ty3 )
+    2dup 2op_max_type >r
+    typeno_array coerce_to swap
+    typeno_array coerce_to swap
+    golf_*_arrarr
+    r> coerce_to ;
+
+: golf_*_fold ( ty1 tyblock -- ty2 )
+    swap typeno_array coerce_to swap golf_*_arrblock ;
+
+: golf_* ( varies -- varies )
+    2dup 2op_min_type typeno_int =
+    IF golf_*_int ELSE
+        2dup 2op_max_type typeno_str <=
+        IF golf_*_join
+        ELSE golf_*_fold
+        ENDIF
+    ENDIF ;
 \ --------------------------------
 \ - Golfscript ) Operator
 \ --------------------------------
