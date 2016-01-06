@@ -36,6 +36,7 @@ s" ]" , , ' anon_array ,
 s" (" , , ' golf_( ,
 s" ?" , , ' golf_? ,
 s" ," , , ' golf_, ,
+s" $" , , ' golf_$ ,
 
 s" +" , , ' golf_+ ,
 

@@ -1203,6 +1203,61 @@ create tyint_max :noname val swap val max anon_int ; ,
 : golf_@  rot ;
 
 
+\ --------------------------------
+\ - Golfscript $ Operator
+\ --------------------------------
+
+: golf_$_int ( x0 ... xu tyu -- x0 ... xu x0 )
+    val pick ;
+
+
+: _map_to_sort_tuples { tyarr tyblock -- tuplearr }
+    tyarr :noname POSTPONE golf_slice_start POSTPONE golf_. tyblock POSTPONE LITERAL
+    POSTPONE golf_sim POSTPONE anon_array POSTPONE ;
+    anon_block golf_%_map ;
+
+: _compare_tuples { tyarr i j -- f }
+    tyarr i golf_array_nth 1 golf_array_nth val
+    tyarr j golf_array_nth 1 golf_array_nth val
+    > ; ( XXX change to golf_> )
+\ golf_> golf_boolean_to_flag ;
+
+: _select_min { tyarr startidx -- minidx }
+    startidx
+    tyarr val nip startidx u+do
+        dup tyarr swap i _compare_tuples
+        IF drop i ENDIF
+    loop ;
+
+: _array_swap { tyarr x y -- tyarr }
+    tyarr val drop dup ( addr addr )
+    x cells + dup @ >r ( addr addr+x )
+    swap y cells + dup @ ( addr+x addr+y yv )
+    rot ! r> swap ! ;
+
+: sort_tuples { tyarr -- tysorted }
+    tyarr val nip 1- 0 u+do
+        tyarr dup i _select_min
+\        .s cr
+        i _array_swap
+    loop tyarr ;
+
+create tuple_fst :noname 0 anon_int golf_= ; ,
+
+: golf_$_block { tyarr tyblock -- sortedarr }
+    tyarr tyblock _map_to_sort_tuples ( dup val_dump cr )
+    sort_tuples
+    tuple_fst anon_block golf_% ;
+
+create std_sorter :noname ; anon_block ,
+: golf_$ ( ty1 -- ty2 )
+    dup golf_type CASE
+        typeno_int OF golf_$_int ENDOF
+        typeno_array OF
+            std_sorter golf_$_block ENDOF
+        typeno_block OF golf_$_block ENDOF
+    ENDCASE ;
+
 \ ----------------------------------------------
 \ - Golfscript loop and conditional constructs
 \ ----------------------------------------------
