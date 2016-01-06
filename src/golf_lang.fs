@@ -238,6 +238,25 @@ create slice_start_idx 0 ,
 ;
 
 
+\ returns false if index out of bounds,
+\ last index if index=-1
+: golf_array_index_bounds_check ( array_len typed-index -- index -1 | 0 )  
+
+    val
+    
+    \ specal case -1 = array_len -1
+\    dup -1 = if
+\        drop 1-  
+    dup 0< if
+        + dup 0< if drop 0 EXIT then
+    else
+        \ bigger then array, then we are empty
+        2dup <= if 2drop 0 EXIT then
+        nip
+    then
+
+    -1
+;
 \ -------------------------------
 \ - Golfscript ! Operator
 \ -------------------------------
@@ -372,9 +391,9 @@ create slice_start_idx 0 ,
 
 
 
-\ -------------------------
-\ - type coercion helpers
-\ -------------------------
+\ ------------------------------------
+\ type coercion and operator helpers
+\ ------------------------------------
 Defer coerce_to  (  typed typedid -- typed )
 Defer coerce_rawcast_to  (  typed typedid -- typed )
 
@@ -416,26 +435,150 @@ Defer coerce_rawcast_to  (  typed typedid -- typed )
 ;
 
 
-\ --------------------------------
-\ Golfscipt < Operator
-\ -------------------------------
-: golf_<_int_int ( typed-int typed-int -- typed-int )
+: 1op_array_string_wrapper { typed-str typed-str xt -- typed-str }
 
+    typed-str typeno_array coerce_to
+    xt execute 
+    typeno_str coerce_to
+;
+
+: 2op_array_string_wrapper { typed-str1 typed-str2 xt -- typed-str }
+
+    typed-str1 typeno_array coerce_to
+    typed-str2 typeno_array coerce_to
+    xt execute 
+    typeno_str coerce_to
+;
+: golf_array_based_operator { typed-compound xt -- varies }
+
+    typed-compound golf_type CASE
+        typeno_array OF typed-compound xt execute ENDOF
+        typeno_str OF typed-compound xt 1op_array_string_wrapper ENDOF
+        typeno_block OF 1 throw ENDOF
+    ENDCASE
+
+;
+\ --------------------------------
+\ Golfscipt < > Operators
+\ -------------------------------
+
+
+\ 
+\ golf_< compare functionality
+\ 
+: golf_xt_compare_int ( typed-int typed-int xt-- typed-int )
+
+    -rot
     val swap val swap
-    < 
+    rot
+    execute
     flag_to_golf_boolean
 ;
 
 
-: golf_< ( ty1 ty2 -- tyo )
+Defer golf_xt_compare
 
+: golf_xt_compare_array { typed-arr1 typed-arr2 xt -- typed-int }
+
+    typed-arr1 golf_array_len
+    typed-arr2 golf_array_len
+
+    min 
+
+    0 u+do
+        typed-arr1 i golf_array_nth
+        typed-arr2 i golf_array_nth
+
+        xt execute golf_boolean_to_flag if
+            1 anon_int UNLOOP EXIT
+        then
+    loop
+
+    typed-arr1 golf_array_len anon_int
+    typed-arr2 golf_array_len anon_int
+
+    xt execute
+;
+
+: golf_xt_compare_impl { ty1 ty2 xt-bin -- typed-int }
+
+    ty1 ty2
     2op_coerce_to_max CASE
-        typeno_int OF golf_<_int_int ENDOF
+
+        typeno_int OF xt-bin golf_xt_compare_int ENDOF
+        typeno_array OF :noname xt-bin POSTPONE literal POSTPONE golf_xt_compare POSTPONE ;
+                        golf_xt_compare_array ENDOF
+
+        typeno_str OF  :noname xt-bin POSTPONE literal POSTPONE golf_xt_compare POSTPONE ; { xt-next } 
+                       :noname xt-next POSTPONE literal POSTPONE golf_xt_compare_array POSTPONE ;
+                       2op_array_string_wrapper ENDOF
         1 throw
-    ENDCASE 
+    ENDCASE
+;
+
+' golf_xt_compare_impl IS golf_xt_compare
+
+\ 
+\ golf_<> index functionality
+\ 
+
+: golf_<>_pivot_index { typed-int typed-arr -- u }
+
+    typed-arr golf_array_len typed-int
+    golf_array_index_bounds_check invert if
+        typed-int val 0< if 
+           0 
+        else 
+            typed-arr golf_array_len       
+        then
+    then
+;
+
+: golf_<_index_arr ( typed-int typed-arr -- typed-arr )
+
+    dup -rot
+    golf_<>_pivot_index 1-
+    0 swap
+    golf_array_slice
+;
+
+: golf_>_index_arr ( typed-int typed-arr -- typed-arr )
+
+    dup -rot
+    golf_<>_pivot_index 
+    over golf_array_len
+    golf_array_slice
 ;
 
 
+: golf_<> { ty1 ty2 xt-bin xt-index -- tyo }
+
+    \ if we hace compound and integer we hace index funtionality
+    ty1 ty2 2op_same_type invert 
+    ty1 ty2 2op_type_order 
+              drop golf_type typeno_int = 
+    and if
+        ty1 ty2 2op_type_order 
+        xt-index golf_array_based_operator
+        EXIT
+    then
+
+    ty1 ty2 xt-bin golf_xt_compare
+;
+
+: golf_< ( ty1 ty2 -- tyo )
+
+    ['] < 
+    ['] golf_<_index_arr
+    golf_<>
+;
+
+: golf_> ( ty1 ty2 -- tyo )
+
+    ['] > 
+    ['] golf_>_index_arr
+    golf_<>
+;
 
 \ --------------------------------
 \ - Golfscipt + Operator
@@ -529,23 +672,7 @@ Defer coerce_rawcast_to  (  typed typedid -- typed )
 
 
 
-\ returns false if index out of bounds,
-\ last index if index=-1
-: index_bounds_check ( array_len typed-index -- index -1 | 0 )  
 
-    val
-    
-    \ specal case -1 = array_len -1
-    dup -1 = if
-        drop 1-  
-    else
-        \ bigger then array, then we are empty
-        2dup <= if 2drop 0 EXIT then
-        nip
-    then
-
-    -1
-;
 
 
 \ see golf_index
@@ -553,7 +680,7 @@ Defer coerce_rawcast_to  (  typed typedid -- typed )
 
     dup golf_array_len rot 
 
-    index_bounds_check if
+    golf_array_index_bounds_check if
         golf_array_nth 
     else 
         drop
@@ -566,7 +693,7 @@ Defer coerce_rawcast_to  (  typed typedid -- typed )
 
     dup val nip rot 
 
-    index_bounds_check if
+    golf_array_index_bounds_check if
         swap val drop swap chars + c@  anon_int
     else 
         drop

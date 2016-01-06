@@ -50,12 +50,13 @@ s" =" , , ' golf_= , \ block index function
 s" -" , , ' golf_- , \ block filter function
 s" /" , , ' golf_/ ,
 s" %" , , ' golf_% ,
+s" <" , , ' golf_< ,
+s" >" , , ' golf_> ,
 
 \ incomplete
 s" !" , , ' golf_! ,
 s" )" , , ' golf_) ,
 
-s" <" , , ' golf_< ,
 
 0 ,
 
@@ -81,12 +82,18 @@ s" <" , , ' golf_< ,
     invert IF 0 THEN
 ;
 
-
+: space_var_subst ( addr u -- addr u )
+    2dup s"  " compare 0=
+    if
+        2drop
+        s" golf_space" str_to_heap
+    then 
+;
 : create-variable { addr u -- }
 
         s" create " dup u + chars allocate  
         2swap str-append 
-        addr u str-append
+        addr u space_var_subst str-append
 
         get-current { w } 
         golf-wordlist set-current
@@ -118,6 +125,7 @@ s" <" , , ' golf_< ,
     s>number? 
     nip
     0=  if 
+        drop
         s" failed number conversion" exception throw 
     then 
  
@@ -138,7 +146,7 @@ s" <" , , ' golf_< ,
 
     \ check for variable existence, 
     \ and register if not in wordlist
-    addr u golf-wordlist search-wordlist 0= if
+    addr u space_var_subst golf-wordlist search-wordlist 0= if
         addr u create-variable 
         xt addr u recurse 
     else 
@@ -242,11 +250,12 @@ Defer execute-token ( caddr u xt -- caddr1 u1 xt1 flag )
 
 ;
 
+
 \ standard token execution (everyring but '{' '}' or ':'
 : standard-token { addr-token u-token xt-token xt  --  caddr1 u1 xt1 flag }
     
     \ first we have to check if we are a variable
-    addr-token u-token golf-wordlist search-wordlist 
+    addr-token u-token space_var_subst golf-wordlist search-wordlist 
     if  xt swap
         execute-variable-use 
 

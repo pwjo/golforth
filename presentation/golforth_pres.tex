@@ -363,36 +363,38 @@ $\downarrow$ \\
 %    \end{alltt}
 %\end{frame}
 %
-\begin{frame}
-    Blocks
 
-    \begin{itemize}
-        \item Stored as execution tokens
-        \item Operations: \texttt{2\{1+\}+ }$\rightarrow$ \texttt{\{2 1+\}} \\
-              implemented as function composition
-        \item Execution via \texttt{execute}
-    \end{itemize}
-\end{frame}
 
-\begin{frame}[fragile]
-    \vspace{0.5cm}
-    Conditionals and Loops
-
-    \begin{itemize}
-        \item \texttt{5\{1-..\}do} $\rightarrow$ 4 3 2 1 0 0
-        \item \texttt{5\{.\}\{1-.\}while}  $\rightarrow$  4 3 2 1 0 0
-        \item \texttt{5\{.\}\{1-.\}until}  $\rightarrow$  5
-        \item implemented as words which consume code blocks
-    \end{itemize}
-%    \begin{verbatim}
-%        : golf_do { block }
-%            BEGIN
-%                block golf_execute
-%            WHILE
-%            REPEAT ;
-%    \end{verbatim}
-\end{frame}
-
+%\begin{frame}
+%    Blocks
+%
+%    \begin{itemize}
+%        \item Stored as execution tokens
+%        \item Operations: \texttt{2\{1+\}+ }$\rightarrow$ \texttt{\{2 1+\}} \\
+%              implemented as function composition
+%        \item Execution via \texttt{execute}
+%    \end{itemize}
+%\end{frame}
+%
+%\begin{frame}[fragile]
+%    \vspace{0.5cm}
+%    Conditionals and Loops
+%
+%    \begin{itemize}
+%        \item \texttt{5\{1-..\}do} $\rightarrow$ 4 3 2 1 0 0
+%        \item \texttt{5\{.\}\{1-.\}while}  $\rightarrow$  4 3 2 1 0 0
+%        \item \texttt{5\{.\}\{1-.\}until}  $\rightarrow$  5
+%        \item implemented as words which consume code blocks
+%    \end{itemize}
+%%    \begin{verbatim}
+%%        : golf_do { block }
+%%            BEGIN
+%%                block golf_execute
+%%            WHILE
+%%            REPEAT ;
+%%    \end{verbatim}
+%\end{frame}
+%
 
 \begin{frame}[fragile]
   \vspace{0.5cm}
@@ -405,9 +407,6 @@ $\downarrow$ \\
 
     \end{itemize}
 
-    Hier koennten die demos beginnen: 
-
-    Operator in shell zeigen und evtl entsprechende implementierung
 %\scriptsize \begin{lstlisting}
 %: golf_sim ( typed -- ... )
 %    dup golf_type CASE
@@ -424,42 +423,84 @@ $\downarrow$ \\
 
 \begin{frame}[fragile]
 
-
+    \vspace{0.5cm}
+    Implementation Status in Percentage
+    \vspace{0.5cm}
         \tiny
-    \begin{tabular}{l l}
-        \textasciitilde & 100 \\
-        ` & 0 \\
-        ! & 100 \\
-        @ & 100 \\
-        \$ & 0 \\
-        + & 100 \\
-        - & 75 not for blocks\\
-        $\ast$ & 0 \\
-        / & 0 \\
-        \% & 25 \\
-        $\vert$ & 0 \\
-        \& & 0 \\
-        \textasciicircum & 0 \\
-        \textbackslash & 100 \\
-        ; & 100 \\
-        \textless & 0 \\
-        \textgreater & 0 \\
-        = & 88 \\
-        , & 75 \\
-        . & 100 \\
-        ? & 75 \\
-        ( & 75 \\
-        ) & 75 \\
-        and or xor & 0 \\
-        print n puts & 100 \\
-        p & 0 \\
-        until while do& 100 \\
-        if & 100 \\
-        abs & 0 \\
-        zip & 0 \\
-        base & 0 \\
 
-    \end{tabular}
+        \begin{tabular}{ p{2.1cm} p{1.5cm} p{2cm} p{1.5cm} p{2cm} }
+
+            Complex Overloaded \footnote{\tiny Introspection based features for Blocks have not been implemented.}
+
+                \begin{tabular}{l l}
+                    \hline
+                    ! & 100 \\
+                    = & 88 \\
+                    \textasciitilde & 100 \\
+                    \$ & 0 \\
+                    + & 100 \\
+                    - & 75 \\
+                    $\ast$ & 0 \\
+                    / & 0 \\
+                    \% & 25 \\
+                    , & 75 \\
+                    ? & 75 \\
+                    ( & 75 \\
+                    ) & 75 \\
+                    $\vert$ & 0 \\
+                    \& & 0 \\
+                    \textasciicircum & 0 \\
+                    \textless & 0 \\
+                    \textgreater & 0 \\
+                    and or xor & 0 \\
+                    zip & 0 \\
+
+                \end{tabular}
+
+            &
+
+                Stack Operators
+                \begin{tabular}{l l}
+                    \hline
+                    @ & 100 \\
+                    \textbackslash & 100 \\
+                    ; & 100 \\
+                    . & 100 \\
+                \end{tabular}
+
+
+            &
+                Loops \& Conditionals
+                \begin{tabular}{l l}
+                    \hline
+                    until& 100 \\
+                    while & 100 \\
+                    do& 100 \\
+                    if & 100 \\
+                \end{tabular}
+
+            &
+                Math
+                \begin{tabular}{l l}
+                    \hline
+                    abs & 100 \\
+                    base & 100 \\
+                    rand & 0 \\
+                \end{tabular}
+
+            &
+                Output
+                \begin{tabular}{l l}
+                    \hline
+                    ` & 0 \\
+                    print & 100 \\
+                    puts & 100 \\
+                    p & 0 \\
+                \end{tabular}
+            \\
+
+        \end{tabular}
+
 \end{frame}
 
 %\begin{frame}[fragile]
@@ -493,8 +534,7 @@ $\downarrow$ \\
     Cutbacks
     \begin{itemize}
     \item Error Handling differs
-    \item Probably not all operators implemented
-    \item Block operations not completly implemnted
+    \item Introspective Block operations not implemnted
     \end{itemize}
 \end{frame}
 
@@ -504,8 +544,11 @@ $\downarrow$ \\
     \begin{itemize}
     \item Stack paradigma mapped to typed language
     \item Wordlists for variable tracking 
-    \item Macros \& anonym functions for language implementation
-    \item Macros for operator implementation
+    \item Macros \& anonym functions for 
+        \begin{itemize}
+            \item language implementation
+            \item operator implementation
+        \end{itemize}
     \end{itemize}
 \end{frame}
 

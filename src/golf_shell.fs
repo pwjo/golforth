@@ -31,9 +31,9 @@ LOOP
 
     begin 
     
+        golf-prompt
         buf 1024 stdin read-line throw 
     
-        golf-prompt
 
         while 
             buf swap 
