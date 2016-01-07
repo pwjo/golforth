@@ -1313,8 +1313,7 @@ Defer golf_xt_compare
         tyblock golf_sim golf_! val 0>
         IF drop ENDIF
     loop
-    anon_array
-;
+    anon_array ;
 
 : golf_,_block { ty1 tyblock -- tyfiltered }
     ty1 golf_type >r ty1 typeno_array coerce_to
@@ -1430,7 +1429,9 @@ create tyint_max :noname val swap val max anon_int ; ,
 : golf_backslash
     2 shift_down_slice_start
     swap ;
-: golf_@  rot ;
+: golf_@
+    3 shift_down_slice_start
+    rot ;
 
 
 \ --------------------------------
@@ -1442,8 +1443,11 @@ create tyint_max :noname val swap val max anon_int ; ,
 
 
 : _map_to_sort_tuples { tyarr tyblock -- tuplearr }
-    tyarr :noname POSTPONE golf_slice_start POSTPONE golf_. tyblock POSTPONE LITERAL
-    POSTPONE golf_sim POSTPONE anon_array POSTPONE ;
+    tyarr
+    :noname
+    POSTPONE golf_slice_start
+    POSTPONE golf_. tyblock POSTPONE LITERAL POSTPONE golf_sim
+    POSTPONE anon_array POSTPONE ;
     anon_block golf_%_map ;
 
 : _compare_tuples { tyarr i j -- f }
