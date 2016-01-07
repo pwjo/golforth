@@ -1261,6 +1261,10 @@ Defer golf_xt_compare
      dup golf_type CASE
          typeno_int OF golf_)_int ENDOF
          typeno_array OF golf_)_array ENDOF
+         typeno_str OF
+             typeno_array coerce_to golf_)_array
+             swap typeno_str coerce_to swap
+             ENDOF
      ENDCASE ;
 
 
@@ -1283,6 +1287,10 @@ Defer golf_xt_compare
      dup golf_type CASE
          typeno_int OF golf_(_int ENDOF
          typeno_array OF golf_(_array ENDOF
+         typeno_str OF
+             typeno_array coerce_to golf_(_array
+             swap typeno_str coerce_to swap
+             ENDOF
      ENDCASE ;
 
 \ --------------------------------
@@ -1298,7 +1306,7 @@ Defer golf_xt_compare
 : golf_,_arr ( tyarr -- tysz )
     val nip anon_int ;
 
-: golf_,_block { tyarr tyblock -- tyfilteredarr }
+: golf_,_block_arr { tyarr tyblock -- tyfilteredarr }
     golf_slice_start
     tyarr val nip 0 u+do
         tyarr i golf_array_nth dup
@@ -1307,6 +1315,11 @@ Defer golf_xt_compare
     loop
     anon_array
 ;
+
+: golf_,_block { ty1 tyblock -- tyfiltered }
+    ty1 golf_type >r ty1 typeno_array coerce_to
+    tyblock golf_,_block_arr
+    r> coerce_to ;
 
 : golf_, ( tyi -- tyo )
     dup golf_type CASE
@@ -1319,29 +1332,35 @@ Defer golf_xt_compare
 \ - Golfscript ? Operator
 \ --------------------------------
 
-: golf_?_int { int1 int2 -- int1^int2 }
-    int1 val int2 val
+: golf_?_int { tyint1 tyint2 -- tyint1^tyint2 }
+    tyint1 val tyint2 val
     1 swap 0 ?do over * loop nip anon_int ;
 
-: golf_?_array { int array -- idxint }
-    -1 array val 0 u+do
-        dup @ int golf_equal_int
+: golf_?_array { tyint tyarr -- tyidxint }
+    -1 tyarr val 0 u+do
+        dup @ tyint golf_equal_int
         IF nip i swap leave ELSE cell+ ENDIF
     loop drop anon_int ;
 
-\ Vor dem if evtl anpassen
-: golf_?_block { array block -- ... }
-    array val nip  0 u+do
-        array i golf_array_nth
-        block golf_sim golf_! val 0= ( ! gives 0 on non-empty value )
-        IF array i golf_array_nth LEAVE ENDIF
+: golf_?_block { tyarr tyblock -- ... }
+    tyarr val nip  0 u+do
+        tyarr i golf_array_nth
+        tyblock golf_sim golf_! val 0=
+        IF tyarr i golf_array_nth LEAVE ENDIF
     loop ;
 
 : golf_? ( varies varies -- ... )
     dup golf_type CASE
         typeno_int OF golf_?_int ENDOF
         typeno_array OF golf_?_array ENDOF
-        typeno_block OF golf_?_block ENDOF
+        typeno_str OF
+            typeno_array coerce_to
+            golf_?_array
+        ENDOF
+        typeno_block OF
+            swap typeno_array coerce_to swap
+            golf_?_block
+        ENDOF
     ENDCASE ;
 
 
