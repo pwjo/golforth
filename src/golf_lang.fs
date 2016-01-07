@@ -98,7 +98,16 @@ create slice_start_idx 0 ,
 ;
 
 
-: execute_if_block ( typed ) 
+
+\ everything thats done after a variable load
+: post_load ( typed -- typed | ) 
+
+    \ if the var is not initialized we drop it
+    dup 0= if
+        drop EXIT
+    then
+
+    \ if we have a block we execute
     dup golf_type typeno_block = if
         val execute 
     then
@@ -106,7 +115,7 @@ create slice_start_idx 0 ,
 
 : create_load_func { addr -- xt }
 
-    :noname addr POSTPONE literal POSTPONE @ POSTPONE execute_if_block POSTPONE ;
+    :noname addr POSTPONE literal POSTPONE @ POSTPONE post_load POSTPONE ;
 ;
 
 

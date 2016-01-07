@@ -94,9 +94,20 @@ s" &" , , ' golf_& ,
         s" golf_space" str_to_heap
     then 
 ;
+
+
+: init-variable ( addr u -- )
+    space_var_subst golf-wordlist search-wordlist 
+    0= if
+        s" did not find variable for init" exception throw
+    else
+        0 swap !
+    then
+;
+
 : create-variable { addr u -- }
 
-        s" create " dup u + chars allocate  
+        s" variable " dup u + chars allocate  
         2swap str-append 
         addr u space_var_subst str-append
 
@@ -104,6 +115,8 @@ s" &" , , ' golf_& ,
         golf-wordlist set-current
         evaluate 
         w set-current 
+
+        addr u init-variable 
 ;
 
 
