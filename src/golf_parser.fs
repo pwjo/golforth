@@ -58,6 +58,9 @@ s" >" , , ' golf_> ,
 \ incomplete
 s" !" , , ' golf_! ,
 s" )" , , ' golf_) ,
+s" |" , , ' golf_| ,
+s" ^" , , ' golf_^ ,
+s" &" , , ' golf_& ,
 
 
 0 ,

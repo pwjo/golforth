@@ -733,6 +733,33 @@ Defer golf_xt_compare
 
 
 \ --------------------------------
+\ Golfscipt logical | ^ & Operators
+\ -------------------------------
+: golf_logical_bitwise ( typed-int typed-int xt -- typed int )
+
+    -rot
+    val swap val 
+    rot execute
+    anon_int
+    
+;
+
+: golf_logical ( ty1 ty2 xt -- tyo )
+
+    -rot
+    2op_coerce_to_max CASE
+        typeno_int OF rot golf_logical_bitwise ENDOF
+        typeno_array OF 1 throw ENDOF
+        typeno_str OF 1 throw ENDOF
+        typeno_block OF 1 throw ENDOF
+    ENDCASE 
+;
+
+: golf_| ['] or golf_logical ;
+: golf_& ['] and golf_logical ;
+: golf_^ ['] xor golf_logical ;
+
+\ --------------------------------
 \ Golfscipt - Operator
 \ -------------------------------
 : golf_-_int { ty1 ty2 -- tyo }
