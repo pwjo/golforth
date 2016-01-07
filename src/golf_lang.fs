@@ -97,9 +97,16 @@ create slice_start_idx 0 ,
     :noname POSTPONE dup addr POSTPONE literal POSTPONE ! POSTPONE ;
 ;
 
+
+: execute_if_block ( typed ) 
+    dup golf_type typeno_block = if
+        val execute 
+    then
+;
+
 : create_load_func { addr -- xt }
 
-    :noname addr POSTPONE literal POSTPONE @ POSTPONE ;
+    :noname addr POSTPONE literal POSTPONE @ POSTPONE execute_if_block POSTPONE ;
 ;
 
 

@@ -3,6 +3,7 @@ s" stdlib.fs" included
 s" golf_lang.fs" included
 s" golf_parser.fs" included
 
+s" golf_builtins.fs" included
 
 : dump_stack ( * -- ) 
 depth 0 +do 
@@ -44,6 +45,7 @@ LOOP
             dump_stack
    repeat 
 ; 
+
 
 
 golf-stdin 
